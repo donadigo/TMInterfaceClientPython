@@ -6,6 +6,7 @@ SIM_HAS_STATE_3 = 0x8
 SIM_HAS_STATE_4 = 0x10
 SIM_HAS_CMD_BUFFER_CORE = 0x20
 SIM_HAS_INPUT_STATE = 0x40
+SIM_HAS_PLAYER_INFO = 0x80
 
 MODE_SIMULATION = 0
 MODE_RUN = 1
@@ -98,6 +99,12 @@ class SimStateData(object):
         y = struct.unpack('f', self.state1[452:456])[0]
         z = struct.unpack('f', self.state1[456:460])[0]
         return [x, y, z]
+
+    def get_display_speed(self) -> int:
+        if (self.flags & SIM_HAS_PLAYER_INFO) == 0:
+            return 0
+
+        return struct.unpack('i', self.player_info[832:836])[0]
 
     def set_position(self, pos: list) -> bool:
         if (self.flags & SIM_HAS_STATE_1) == 0:
