@@ -6,6 +6,7 @@ import signal
 import sys
 from .client import Client
 from .structs import Event, CheckpointData, SimStateData, EventBufferData
+from .sizes import *
 
 S_RESPONSE = 1
 S_ON_RUN_STEP = 2
@@ -46,6 +47,10 @@ class Message(object):
         self._type = _type
         self.error_code = error_code
         self.data = bytearray()
+
+    def write_event(self, event: Event):
+        self.write_uint32(event.time)
+        self.write_int32(event.data)
 
     def write_uint8(self, n):
         self.data.extend(struct.pack('B', n))
@@ -184,21 +189,22 @@ class TMInterface(object):
         msg.write_int32(state.context_mode)
         msg.write_int32(state.flags)
         msg.write_buffer(state.timers)
-        msg.write_buffer(state.state1)
-        msg.write_buffer(state.state2)
-        msg.write_buffer(state.state3)
-        msg.write_buffer(state.state4)
+        msg.write_buffer(state.dyna)
+        msg.write_buffer(state.scene_mobil)
+        msg.write_buffer(state.simulation_wheels)
+        msg.write_buffer(state.plug_solid)
         msg.write_buffer(state.cmd_buffer_core)
         msg.write_buffer(state.player_info)
+        msg.write_buffer(state.internal_input_state)
 
-        msg.write_int32(state.input_running_state)
-        msg.write_int32(state.input_finish_state)
-        msg.write_int32(state.input_accelerate_state)
-        msg.write_int32(state.input_brake_state)
-        msg.write_int32(state.input_left_state)
-        msg.write_int32(state.input_right_state)
-        msg.write_int32(state.input_steer_state)
-        msg.write_int32(state.input_gas_state)
+        msg.write_event(state.input_running_state)
+        msg.write_event(state.input_finish_state)
+        msg.write_event(state.input_accelerate_state)
+        msg.write_event(state.input_brake_state)
+        msg.write_event(state.input_left_state)
+        msg.write_event(state.input_right_state)
+        msg.write_event(state.input_steer_state)
+        msg.write_event(state.input_gas_state)
         msg.write_uint32(state.num_respawns)
 
         self.__write_checkpoint_state(msg, state.cp_data)
@@ -258,6 +264,11 @@ class TMInterface(object):
         self.__clear_buffer()
         return data
 
+    def __read_event(self):
+        time = self.__read_uint32()
+        data = self.__read_int32()
+        return Event(time, data)
+
     def get_simulation_state(self) -> SimStateData:
         msg = Message(C_SIM_GET_STATE)
         self.__send_message(msg)
@@ -269,22 +280,23 @@ class TMInterface(object):
         state = SimStateData()
         state.context_mode = self.__read_int32()
         state.flags = self.__read_uint32()
-        state.timers = bytearray(self.mfile.read(212))
-        state.state1 = bytearray(self.mfile.read(820))
-        state.state2 = bytearray(self.mfile.read(2180))
-        state.state3 = bytearray(self.mfile.read(3056))
-        state.state4 = bytearray(self.mfile.read(72))
-        state.cmd_buffer_core = bytearray(self.mfile.read(256))
-        state.player_info = bytearray(self.mfile.read(944))
+        state.timers = bytearray(self.mfile.read(TIMERS_SIZE))
+        state.dyna = bytearray(self.mfile.read(DYNA_SIZE))
+        state.scene_mobil = bytearray(self.mfile.read(SCENE_MOBIL_SIZE))
+        state.simulation_wheels = bytearray(self.mfile.read(SIMULATION_WHEELS_SIZE))
+        state.plug_solid = bytearray(self.mfile.read(PLUG_SOLID_SIZE))
+        state.cmd_buffer_core = bytearray(self.mfile.read(CMD_BUFFER_CORE_SIZE))
+        state.player_info = bytearray(self.mfile.read(PLAYER_INFO_SIZE))
+        state.internal_input_state = bytearray(self.mfile.read(INPUT_STATE_SIZE))
 
-        state.input_running_state = self.__read_int32()
-        state.input_finish_state  = self.__read_int32()
-        state.input_accelerate_state = self.__read_int32()
-        state.input_brake_state  = self.__read_int32()
-        state.input_left_state  = self.__read_int32()
-        state.input_right_state = self.__read_int32()
-        state.input_steer_state = self.__read_int32()
-        state.input_gas_state = self.__read_int32()
+        state.input_running_state = self.__read_event()
+        state.input_finish_state  = self.__read_event()
+        state.input_accelerate_state = self.__read_event()
+        state.input_brake_state  = self.__read_event()
+        state.input_left_state  = self.__read_event()
+        state.input_right_state = self.__read_event()
+        state.input_steer_state = self.__read_event()
+        state.input_gas_state = self.__read_event()
         state.num_respawns = self.__read_uint32()
 
         if (error_code & NO_CHECKPOINT_STATE) == 0:
@@ -306,9 +318,9 @@ class TMInterface(object):
             return EventBufferData(0)
 
         data = EventBufferData(self.__read_uint32())
-        event_data = self.__read_vector([4, 2, 1, 1])
+        event_data = self.__read_vector([4, 4])
         for item in event_data:
-            ev = Event(item[0], item[1], item[2], item[3])
+            ev = Event(item[0], item[1])
             data.events.append(ev)
             
         self.__clear_buffer()
@@ -349,6 +361,10 @@ class TMInterface(object):
         if _id != -1:
             names[_id] = 'Steer'
             
+        _id = self.__read_int32()
+        if _id != -1:
+            names[_id] = 'Gas'
+
         _id = self.__read_int32()
         if _id != -1:
             names[_id] = 'Respawn'
