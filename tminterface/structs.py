@@ -1,3 +1,5 @@
+import tminterface.util as util
+
 import struct
 SIM_HAS_TIMERS = 0x1
 SIM_HAS_DYNA = 0x2
@@ -15,6 +17,32 @@ class Event(object):
     def __init__(self, time: int, data: int):
         self.time = time
         self.data = data
+
+    @property
+    def name_index(self):
+        return self.data >> 24
+
+    @name_index.setter
+    def name_index(self, index):
+        self.data &= 0xFFFFFF
+        self.data |= (index << 24)
+
+    @property
+    def binary_value(self):
+        return self.data & 0xFFFFFF
+
+    @binary_value.setter
+    def binary_value(self, value):
+        self.data = self.data & 0xFF000000 | value
+
+    @property
+    def analog_value(self):
+        return util.data_to_analog_value(self.data & 0xFFFFFF)
+
+    @analog_value.setter
+    def analog_value(self, value):
+        self.data = self.data & 0xFF000000 | (util.analog_value_to_data(value) & 0xFFFFFF)
+
 
 class EventBufferData(object):
     def __init__(self, events_duration: int):
