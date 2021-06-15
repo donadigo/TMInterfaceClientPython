@@ -22,6 +22,12 @@ class MainClient(Client):
             aim = state.get_aim_direction()
             print(f'Time: {_time}, Display Speed: {speed}, Position: {pos}, Velocity: {vel}, Aim Direction: {aim}')
 
+    def on_simulation_step(self, iface, _time: int):
+        if _time == 2600:
+            buffer = iface.get_event_buffer()
+            buffer.sort()
+            iface.set_event_buffer(buffer)
+
 def handler(signum, frame):
     iface.close()
     sys.exit(0)

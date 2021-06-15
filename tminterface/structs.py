@@ -1,6 +1,6 @@
 import tminterface.util as util
-
 import struct
+
 SIM_HAS_TIMERS = 0x1
 SIM_HAS_DYNA = 0x2
 SIM_HAS_SCENE_MOBIL = 0x4
@@ -19,28 +19,28 @@ class Event(object):
         self.data = data
 
     @property
-    def name_index(self):
+    def name_index(self) -> int:
         return self.data >> 24
 
     @name_index.setter
-    def name_index(self, index):
+    def name_index(self, index: int):
         self.data &= 0xFFFFFF
         self.data |= (index << 24)
 
     @property
-    def binary_value(self):
+    def binary_value(self) -> int:
         return self.data & 0xFFFFFF
 
     @binary_value.setter
-    def binary_value(self, value):
+    def binary_value(self, value: int) -> int:
         self.data = self.data & 0xFF000000 | value
 
     @property
-    def analog_value(self):
+    def analog_value(self) -> int:
         return util.data_to_analog_value(self.data & 0xFFFFFF)
 
     @analog_value.setter
-    def analog_value(self, value):
+    def analog_value(self, value: int):
         self.data = self.data & 0xFF000000 | (util.analog_value_to_data(value) & 0xFFFFFF)
 
 
@@ -56,9 +56,10 @@ class EventBufferData(object):
         return cpy
 
     def clear(self):
-        for i in range(1, len(self.events) - 1):
-            self.events[i].time = 0xffffffff
-            self.events[i].data = 0
+        self.events = []
+
+    def sort(self):
+        self.events = sorted(self.events, key=lambda ev: ev.time, reverse=True)
 
 class CheckpointData(object):
     def __init__(self, cp_count: int, laps_count: int, cp_states: list, cp_times: list):
