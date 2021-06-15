@@ -220,9 +220,9 @@ class TMInterface(object):
     def set_event_buffer(self, data: EventBufferData):
         msg = Message(C_SIM_SET_EVENT_BUFFER)
         msg.write_int32(data.events_duration)
-        events_tup = [(event.time, event.enabled, event.flags, event.name_index) for event in data.events]
+        events_tup = [(event.time, event.data) for event in data.events]
 
-        self.__write_vector(msg, events_tup, [4, 2, 1, 1])
+        self.__write_vector(msg, events_tup, [4, 4])
         self.__send_message(msg)
         self.__wait_for_server_response()
 
