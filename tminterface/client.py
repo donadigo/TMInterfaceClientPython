@@ -9,6 +9,9 @@ class Client(object):
     def on_deregistered(self, iface):
         pass
 
+    def on_shutdown(self, iface):
+        pass
+
     def on_run_step(self, iface, time: int):
         pass
 

@@ -47,6 +47,7 @@ class Event(object):
 class EventBufferData(object):
     def __init__(self, events_duration: int):
         self.events_duration = events_duration
+        self.control_names = {}
         self.events = []
 
     def copy(self):
@@ -62,14 +63,13 @@ class EventBufferData(object):
         self.events = sorted(self.events, key=lambda ev: ev.time, reverse=True)
 
 class CheckpointData(object):
-    def __init__(self, cp_count: int, laps_count: int, cp_states: list, cp_times: list):
-        self.cp_count = cp_count
-        self.laps_count = laps_count
+    def __init__(self, cp_states: list, cp_times: list):
         self.cp_states = cp_states
         self.cp_times = cp_times
 
 class SimStateData(object):
     def __init__(self):
+        self.version = 0
         self.context_mode = MODE_RUN
         self.flags = 0
         self.timers = bytearray()
@@ -95,8 +95,7 @@ class SimStateData(object):
         if (self.flags & SIM_HAS_TIMERS) == 0:
             return 0
 
-        time = struct.unpack('i', self.timers[:4])[0]
-        return time
+        return self.__get_int(self.timers, 4)
 
     def get_position(self) -> list:
         if (self.flags & SIM_HAS_DYNA) == 0:
@@ -157,3 +156,7 @@ class SimStateData(object):
         self.dyna[452:456] = list(struct.pack('f', aim[1]))
         self.dyna[456:460] = list(struct.pack('f', aim[2]))
         return True
+
+    @staticmethod
+    def __get_int(buffer, offset: int) -> int:
+        return int.from_bytes(buffer[offset:offset+4], byteorder='little')

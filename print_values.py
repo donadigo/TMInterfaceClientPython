@@ -3,7 +3,6 @@ from tminterface.client import Client
 import sys
 import signal
 import time
-import struct
 
 class MainClient(Client):
     def __init__(self) -> None:
@@ -22,16 +21,6 @@ class MainClient(Client):
             aim = state.get_aim_direction()
             print(f'Time: {_time}, Display Speed: {speed}, Position: {pos}, Velocity: {vel}, Aim Direction: {aim}')
 
-    def on_simulation_step(self, iface, _time: int):
-        if _time == 2600:
-            buffer = iface.get_event_buffer()
-            buffer.sort()
-            iface.set_event_buffer(buffer)
-
-def handler(signum, frame):
-    iface.close()
-    sys.exit(0)
-
 def main():
     server_name = 'TMInterface0'
     if len(sys.argv) > 1:
@@ -40,6 +29,9 @@ def main():
     print(f'Connecting to {server_name}...')
 
     iface = TMInterface(server_name)
+    def handler(signum, frame):
+        iface.close()
+        sys.exit(0)
 
     signal.signal(signal.SIGBREAK, handler)
     signal.signal(signal.SIGINT, handler)
@@ -47,7 +39,7 @@ def main():
     client = MainClient()
     iface.register(client)
 
-    while True:
+    while iface.running:
         time.sleep(0)
 
 if __name__ == '__main__':
