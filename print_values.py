@@ -10,6 +10,7 @@ class MainClient(Client):
 
     def on_registered(self, iface: TMInterface) -> None:
         print(f'Registered to {iface.server_name}')
+        iface.register_custom_command('custom')
 
     def on_run_step(self, iface: TMInterface, _time: int):
         if _time >= 0:
@@ -19,7 +20,12 @@ class MainClient(Client):
             vel = state.get_velocity()
             pos = state.get_position()
             aim = state.get_aim_direction()
-            print(f'Time: {_time}, Display Speed: {speed}, Position: {pos}, Velocity: {vel}, Aim Direction: {aim}')
+            # print(f'Time: {_time}, Display Speed: {speed}, Position: {pos}, Velocity: {vel}, Aim Direction: {aim}')
+
+    def on_custom_command(self, iface, time_from: int, time_to: int, command: str, args: list):
+        print(time_from, time_to)
+        print(command)
+        print(args)
 
 def main():
     server_name = 'TMInterface0'
@@ -31,7 +37,6 @@ def main():
     iface = TMInterface(server_name)
     def handler(signum, frame):
         iface.close()
-        sys.exit(0)
 
     signal.signal(signal.SIGBREAK, handler)
     signal.signal(signal.SIGINT, handler)

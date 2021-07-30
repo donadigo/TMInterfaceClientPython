@@ -3,12 +3,13 @@ import threading
 import time
 import mmap
 from .client import Client
-from .structs import Event, CheckpointData, SimStateData, EventBufferData
+from .structs import BFEvaluationResponse, BFEvaluationInfo, BFPhase, BFTarget, Event, CheckpointData, SimStateData, EventBufferData
 from .sizes import *
 from enum import IntEnum, auto
 
 class MessageType(IntEnum):
     S_RESPONSE = auto()
+    S_ON_REGISTERED = auto()
     S_SHUTDOWN = auto()
     S_ON_RUN_STEP = auto()
     S_ON_SIM_BEGIN = auto()
@@ -16,6 +17,8 @@ class MessageType(IntEnum):
     S_ON_SIM_END = auto()
     S_ON_CHECKPOINT_COUNT_CHANGED = auto()
     S_ON_LAPS_COUNT_CHANGED = auto()
+    S_ON_CUSTOM_COMMAND = auto()
+    S_ON_BRUTEFORCE_EVALUATE = auto()
     C_REGISTER = auto()
     C_DEREGISTER = auto()
     C_PROCESSED_CALL = auto()
@@ -34,6 +37,8 @@ class MessageType(IntEnum):
     C_SET_TIMEOUT = auto()
     C_REMOVE_STATE_VALIDATION = auto()
     C_PREVENT_SIMULATION_FINISH = auto()
+    C_REGISTER_CUSTOM_COMMAND = auto()
+    C_LOG = auto()
     ANY = auto()
 
 RESPONSE_TOO_LONG = 1
@@ -130,6 +135,7 @@ class TMInterface(object):
         self.client = None
         self.empty_buffer = bytearray(self.buffer_size)
         self.thread = None
+        self.request_close = False
 
     '''
     Registers a client on the server. 
@@ -174,16 +180,14 @@ class TMInterface(object):
     will be called with the instance of the TMInterface class.
     '''
     def close(self):
-        self.running = False
-
         if self.registered:
             msg = Message(MessageType.C_DEREGISTER)
+            msg.write_int32(0)
             self.__send_message(msg)
-            self.__wait_for_server_response()
             self.client.on_deregistered(self)
+            self.thread = None
 
-            if self.thread is not None:
-                self.thread = None
+        self.running = False
 
     '''
     Sets the timeout window in which the client has to respond to server calls.
@@ -261,6 +265,27 @@ class TMInterface(object):
         msg.write_int32(down)
         msg.write_int32(steer)
         msg.write_int32(gas)
+        self.__send_message(msg)
+        self.__wait_for_server_response()
+
+    '''
+    Queues a deterministic respawn at the next race tick. This function
+    will not immediately call the game to respawn the car, as TMInterface
+    has to call the specific function at a specific place in the game loop.
+
+    This function is not available in simulation context. Use set_event_buffer
+    to inject input in simulations.
+
+    The function will respawn the car to the nearest respawnable checkpoint or
+    if there was no passed checkpoints, restart the race. The behaviour of this function
+    also depends on the start_respawn console variable set within TMInterface.
+    If start_respawn is set to true, respawning without any passed checkpoints will
+    not restart the race, but only respawn the car on the start block, simulating
+    online respawn behaviour.
+    '''
+    def respawn(self):
+        msg = Message(MessageType.C_RESPAWN)
+        msg.write_int32(0)
         self.__send_message(msg)
         self.__wait_for_server_response()
 
@@ -408,8 +433,9 @@ class TMInterface(object):
         self.__wait_for_server_response(False)
 
         self.mfile.seek(8)
+        mode = self.__read_int32()
         self.__clear_buffer()
-        return self.__read_int32()
+        return mode
 
     '''
     Gets the current checkpoint state of the race.
@@ -537,7 +563,7 @@ class TMInterface(object):
         if error_code == NO_EVENT_BUFFER:
             return EventBufferData(0)
 
-        names = {}
+        names = [None] * 9
         _id = self.__read_int32()
         if _id != -1:
             names[_id] = '_FakeIsRaceRunning'
@@ -583,6 +609,52 @@ class TMInterface(object):
             
         self.__clear_buffer()
         return data
+
+    def register_custom_command(self, command: str):
+        msg = Message(MessageType.C_REGISTER_CUSTOM_COMMAND)
+        msg.write_int32(0)
+        self.__write_vector(msg, [ord(c) for c in command], 1)
+        self.__send_message(msg)
+        self.__wait_for_server_response()
+
+    def log(self, message: str, severity='log'):
+        severity_id = 0
+        if severity == 'success':
+            severity_id = 1
+        elif severity == 'warning':
+            severity_id = 2
+        elif severity == 'error':
+            severity_id = 3
+
+        msg = Message(MessageType.C_LOG)
+        msg.write_int32(severity_id)
+        self.__write_vector(msg, [ord(c) for c in message], 1)
+        self.__send_message(msg)
+        self.__wait_for_server_response()
+
+    def __on_bruteforce_validate_call(self, msgtype: MessageType):
+        info = BFEvaluationInfo()
+        info.phase = BFPhase(self.__read_int32())
+        info.target = BFTarget(self.__read_int32())
+        info.time = self.__read_int32()
+        info.modified_inputs_num = self.__read_int32()
+        info.inputs_min_time = self.__read_int32()
+        info.inputs_max_time = self.__read_int32()
+        info.max_steer_diff = self.__read_int32()
+        info.max_time_diff = self.__read_int32()
+        info.override_stop_time = self.__read_int32()
+        info.search_forever = bool(self.__read_int32())
+        info.inputs_extend_steer = bool(self.__read_int32())
+
+        resp = self.client.on_bruteforce_evaluate(self, info)
+        if not resp:
+            resp = BFEvaluationResponse()
+        
+        msg = Message(MessageType.C_PROCESSED_CALL)
+        msg.write_int32(msgtype)
+        msg.write_int32(resp.decision)
+        msg.write_int32(resp.rewind_time)
+        self.__send_message(msg)
 
     def __write_checkpoint_state(self, msg: Message, data: CheckpointData):
         msg.write_int32(0) # reserved
@@ -658,7 +730,6 @@ class TMInterface(object):
                 msg = Message(MessageType.C_REGISTER)
                 self.__send_message(msg)
                 self.__wait_for_server_response()
-                self.client.on_registered(self)
                 self.registered = True
 
             self.__process_server_message()
@@ -679,10 +750,8 @@ class TMInterface(object):
         self.__skip(4)
 
         if msgtype == MessageType.S_SHUTDOWN:
-            self.client.on_shutdown(self)
-            self.__respond_to_call(msgtype)
-            self.registered = False
             self.close()
+            self.client.on_shutdown(self)
         elif msgtype == MessageType.S_ON_RUN_STEP:
             time = self.__read_int32()
             self.client.on_run_step(self, time)
@@ -706,6 +775,23 @@ class TMInterface(object):
         elif msgtype == MessageType.S_ON_LAPS_COUNT_CHANGED:
             current = self.__read_int32()
             self.client.on_laps_count_changed(self, current)
+            self.__respond_to_call(msgtype)
+        elif msgtype == MessageType.S_ON_BRUTEFORCE_EVALUATE:
+            self.__on_bruteforce_validate_call(msgtype)
+        elif msgtype == MessageType.S_ON_REGISTERED:
+            self.registered = True
+            self.client.on_registered(self)
+            self.__respond_to_call(msgtype)
+        elif msgtype == MessageType.S_ON_CUSTOM_COMMAND:
+            _from = self.__read_int32()
+            to = self.__read_int32()
+            n_args = self.__read_int32()
+            command = self.__read_string()
+            args = []
+            for _ in range(n_args):
+                args.append(self.__read_string())
+
+            self.client.on_custom_command(self, _from, to, command, args)
             self.__respond_to_call(msgtype)
 
     def __ensure_connected(self):
@@ -760,8 +846,9 @@ class TMInterface(object):
         self.mfile.write(self.empty_buffer)
 
     def __read(self, num_bytes: int, typestr: str):
+        arr = self.mfile.read(num_bytes)
         try:
-            return struct.unpack(typestr, self.mfile.read(num_bytes))[0]
+            return struct.unpack(typestr, arr)[0]
         except Exception as e:
             print(e)
             return 0
@@ -787,6 +874,10 @@ class TMInterface(object):
 
     def __read_uint16(self):
         return self.__read(2, 'H')
+
+    def __read_string(self):
+        chars  = [chr(b) for b in self.__read_vector(1)]
+        return ''.join(chars)
 
     def __skip(self, n):
         self.mfile.seek(self.mfile.tell() + n)

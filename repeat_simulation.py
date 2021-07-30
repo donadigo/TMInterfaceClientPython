@@ -46,7 +46,6 @@ def main():
     iface = TMInterface(server_name)
     def handler(signum, frame):
         iface.close()
-        sys.exit(0)
 
     signal.signal(signal.SIGBREAK, handler)
     signal.signal(signal.SIGINT, handler)

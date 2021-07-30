@@ -1,5 +1,6 @@
 import tminterface.util as util
 import struct
+from enum import IntEnum, auto
 
 SIM_HAS_TIMERS = 0x1
 SIM_HAS_DYNA = 0x2
@@ -119,16 +120,17 @@ class SimStateData(object):
         if (self.flags & SIM_HAS_DYNA) == 0:
             return [0, 0, 0]
         
-        x = struct.unpack('f', self.dyna[448:452])[0]
-        y = struct.unpack('f', self.dyna[452:456])[0]
-        z = struct.unpack('f', self.dyna[456:460])[0]
+        x = struct.unpack('f', self.dyna[488:492])[0]
+        y = struct.unpack('f', self.dyna[492:496])[0]
+        z = struct.unpack('f', self.dyna[496:500])[0]
         return [x, y, z]
 
+    # Available only in run context
     def get_display_speed(self) -> int:
         if (self.flags & SIM_HAS_PLAYER_INFO) == 0:
             return 0
 
-        return struct.unpack('i', self.player_info[832:836])[0]
+        return self.__get_int(self.player_info, 832)
 
     def set_position(self, pos: list) -> bool:
         if (self.flags & SIM_HAS_DYNA) == 0:
@@ -152,11 +154,55 @@ class SimStateData(object):
         if (self.flags & SIM_HAS_DYNA) == 0:
             return False
 
-        self.dyna[448:452] = list(struct.pack('f', aim[0]))
-        self.dyna[452:456] = list(struct.pack('f', aim[1]))
-        self.dyna[456:460] = list(struct.pack('f', aim[2]))
+        self.dyna[488:492] = list(struct.pack('f', aim[0]))
+        self.dyna[492:496] = list(struct.pack('f', aim[1]))
+        self.dyna[496:500] = list(struct.pack('f', aim[2]))
         return True
+
+    def get_race_time(self) -> int:
+        if (self.flags & SIM_HAS_PLAYER_INFO) == 0:
+            return False
+
+        return self.__get_int(self.player_info, 688)
+
+    def get_rewind_time(self) -> int:
+        return self.get_race_time() + 10
 
     @staticmethod
     def __get_int(buffer, offset: int) -> int:
         return int.from_bytes(buffer[offset:offset+4], byteorder='little')
+
+class BFPhase(IntEnum):
+    INITIAL = 0
+    SEARCH = 1
+
+class BFTarget(IntEnum):
+    FINISH_TIME = 0
+    CHECKPOINT_TIME = 1
+    TRIGGER = 2
+
+class BFEvaluationDecision(IntEnum):
+    CONTINUE = 0
+    DO_NOTHING = 1
+    ACCEPT = 2
+    REJECT = 3
+    STOP = 4
+
+class BFEvaluationInfo(object):
+    def __init__(self) -> None:
+        self.phase = BFPhase.INITIAL
+        self.target = BFTarget.FINISH_TIME
+        self.time = 0
+        self.modified_inputs_num = -1
+        self.inputs_min_time = -1
+        self.inputs_max_time = -1
+        self.max_steer_diff = -1
+        self.max_time_diff = -1
+        self.override_stop_time = -1
+        self.search_forever = False
+        self.inputs_extend_steer = False
+
+class BFEvaluationResponse(object):
+    def __init__(self) -> None:
+        self.decision = BFEvaluationDecision.CONTINUE
+        self.rewind_time = -1

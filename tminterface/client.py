@@ -1,4 +1,5 @@
 
+from .structs import BFEvaluationInfo, BFEvaluationResponse
 class Client(object):
     def __init__(self):
         pass
@@ -29,3 +30,9 @@ class Client(object):
 
     def on_laps_count_changed(self, iface, current: int):
         pass
+
+    def on_custom_command(self, iface, time_from: int, time_to: int, command: str, args: list):
+        pass
+
+    def on_bruteforce_evaluate(self, iface, info: BFEvaluationInfo) -> BFEvaluationResponse:
+        return None

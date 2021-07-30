@@ -18,10 +18,6 @@ class MainClient(Client):
         if _time == 5000:
             iface.rewind_to_state(self.state)
 
-def handler(signum, frame):
-    iface.close()
-    sys.exit(0)
-
 def main():
     server_name = 'TMInterface0'
     if len(sys.argv) > 1:
@@ -30,6 +26,8 @@ def main():
     print(f'Connecting to {server_name}...')
 
     iface = TMInterface(server_name)
+    def handler(signum, frame):
+        iface.close()
 
     signal.signal(signal.SIGBREAK, handler)
     signal.signal(signal.SIGINT, handler)
@@ -37,7 +35,7 @@ def main():
     client = MainClient()
     iface.register(client)
 
-    while True:
+    while iface.running:
         time.sleep(0)
 
 if __name__ == '__main__':
