@@ -517,7 +517,7 @@ class TMInterface(object):
         if (error_code & NO_PLAYER_INFO) == 0:
             state.cp_data = self.__read_checkpoint_state()
         else:
-            state.cp_data = CheckpointData(0, 0, [], [])
+            state.cp_data = CheckpointData([], [])
 
         self.__clear_buffer()
         return state

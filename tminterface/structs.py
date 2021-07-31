@@ -33,7 +33,7 @@ class Event(object):
         return self.data & 0xFFFFFF
 
     @binary_value.setter
-    def binary_value(self, value: int) -> int:
+    def binary_value(self, value: int):
         self.data = self.data & 0xFF000000 | value
 
     @property
