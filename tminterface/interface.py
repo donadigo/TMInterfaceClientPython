@@ -3,7 +3,9 @@ import threading
 import time
 import mmap
 from .client import Client
-from .structs import BFEvaluationResponse, BFEvaluationInfo, BFPhase, BFTarget, Event, CheckpointData, SimStateData, EventBufferData
+from .structs import (ANALOG_ACCELERATE_NAME, ANALOG_STEER_NAME, BFEvaluationResponse, BFEvaluationInfo, BFPhase,
+                    BFTarget, BINARY_ACCELERATE_NAME, BINARY_BRAKE_NAME, BINARY_LEFT_NAME, BINARY_RACE_FINISH_NAME,
+                    BINARY_RACE_START_NAME, BINARY_RESPAWN_NAME, BINARY_RIGHT_NAME, Event, CheckpointData, SimStateData, EventBufferData)
 from .sizes import *
 from enum import IntEnum, auto
 
@@ -49,6 +51,21 @@ NO_PLAYER_INFO = 4
 MAXINT32 = 2 ** 31 - 1
 
 class Message(object):
+    '''
+    The Message class represents a binary buffer that contains useful methods to construct
+    a message to send to the server. A message additionally contains its type, whether it is
+    a response to a server call, or a normal client call. It also contains an error code,
+    if there was any failure writing the message.
+
+    Args:
+        _type (int): the message type
+        error_code (int): the error code of the message, 0 if none
+
+    Attributes:
+        _type (int): the message type
+        error_code (int): the error code of the message, 0 if none
+        data (bytearray): the binary data
+    '''
     def __init__(self, _type: int, error_code=0):
         self._type = _type
         self.error_code = error_code
@@ -216,6 +233,9 @@ class TMInterface(object):
     to set the speed to high factors (such as >100), which could cause the game
     to skip running some subsystems such as the input subsystem.
 
+    This variable does not affect simulation contexts in which debug mode is disabled.
+    When debug mode is disabled (default), the game runs only the simulation subsystem.
+
     Args:
         speed (float): the speed to set, 1 is the default normal game speed,
                        factors <1 will slow down the game while factors >1 will speed it up
@@ -240,31 +260,57 @@ class TMInterface(object):
     This function does not work in simulation context. To set input state in that context,
     use event buffers (get_event_buffer).
 
-    Arguments left, right, up and down are by default set to -1 which signifies that the input
-    should not modified for these actions. To disable an action pass 0 and to enable it, pass 1.
+    Arguments left, right, up and down are by binary events. 
+    To disable an action pass False and to enable it, pass True.
 
-    Arguments steer and gas are by default set to MAXINT32 which signifies that the input
-    should not modified for these actions. Pass a value in the range of [-65536, 65536] to modify
+    Arguments steer and gas are analog events. Pass a value in the range of [-65536, 65536] to modify
     the state of these actions. You can also use the extended steer range of [-6553600, 6553600],
     note however that this range is not possible to achieve on physical hardware. This call
     is not affected by the extended_steer console variable.
 
     Args:
-        left (int): the left binary input, -1 by default, 0 = disabled, 1 = enabled
-        right (int): the right binary input, -1 by default, 0 = disabled, 1 = enabled
-        up (int): the up binary input, -1 by default, 0 = disabled, 1 = enabled
-        down (int): the down binary input, -1 by default, 0 = disabled, 1 = enabled
-        steer (int): the steer analog input, MAXINT32 by default
-        gas (int): the gas analog input, MAXINT32 by default
+        **kwargs: the keyword arguments
+
+    Keyword Args:
+        left (bool): the left binary input, False = disabled, True = enabled
+        right (bool): the right binary input, False = disabled, True = enabled
+        accelerate (bool): the up binary input, False = disabled, True = enabled
+        brake (bool): the down binary input, False = disabled, True = enabled
+        steer (int): the steer analog input, in range of [-65536, 65536]
+        gas (int): the gas analog input, in range of [-65536, 65536]
     '''
-    def set_input_state(self, left=-1, right=-1, up=-1, down=-1, steer=MAXINT32, gas=MAXINT32):
+    def set_input_state(self, **kwargs):
         msg = Message(MessageType.C_SET_INPUT_STATES)
-        msg.write_int32(left)
-        msg.write_int32(right)
-        msg.write_int32(up)
-        msg.write_int32(down)
-        msg.write_int32(steer)
-        msg.write_int32(gas)
+        if 'left' in kwargs:
+            msg.write_int32(int(kwargs['left']))
+        else:
+            msg.write_int32(-1)
+
+        if 'right' in kwargs:
+            msg.write_int32(int(kwargs['right']))
+        else:
+            msg.write_int32(-1)
+
+        if 'accelerate' in kwargs:
+            msg.write_int32(int(kwargs['accelerate']))
+        else:
+            msg.write_int32(-1)
+
+        if 'brake' in kwargs:
+            msg.write_int32(int(kwargs['brake']))
+        else:
+            msg.write_int32(-1)
+
+        if 'steer' in kwargs:
+            msg.write_int32(kwargs['steer'])
+        else:
+            msg.write_int32(MAXINT32)
+
+        if 'gas' in kwargs:
+            msg.write_int32(kwargs['gas'])
+        else:
+            msg.write_int32(MAXINT32)
+
         self.__send_message(msg)
         self.__wait_for_server_response()
 
@@ -273,7 +319,7 @@ class TMInterface(object):
     will not immediately call the game to respawn the car, as TMInterface
     has to call the specific function at a specific place in the game loop.
 
-    This function is not available in simulation context. Use set_event_buffer
+    This function is not available in a simulation context. Use set_event_buffer
     to inject input in simulations.
 
     The function will respawn the car to the nearest respawnable checkpoint or
@@ -401,7 +447,6 @@ class TMInterface(object):
     '''
     Replaces the internal event buffer used for simulation with a new one.
 
-
     Args:
         data (EventBufferData): the new event buffer
     '''
@@ -440,17 +485,7 @@ class TMInterface(object):
     '''
     Gets the current checkpoint state of the race.
 
-    The game keeps track of two arrays that contain checkpoint information.
-
-    The first "state" array is an array of booleans (a boolean is 4 bytes long)
-    and keeps track of which checkpoints were already passed. The length of the 
-    array represents the real count of the checkpoints on current the map (including finish).
-    This does not mean that to finish the race the player has to pass through this exact count
-    of checkpoints. A map with 3 laps and 5 checkpoints will still contain only 5 checkpoint states.
-
-    The second "times" array is an array of structures with 2 fields: time and an unknown field.
-    This array holds the "logical" number of checkpoints that have to be passed (including finish).
-    This means the total number of checkpoint passes, including the existence of laps.
+    See CheckpointData for more information.
 
     Returns:
         CheckpointData that holds the two arrays representing checkpoint state
@@ -473,12 +508,8 @@ class TMInterface(object):
     '''
     Gets the current simulation state of the race.
 
-    The simulation state consists of raw memory buffers representing various
-    information about the race state. This includes the entirety of the vehicle
-    state as well as the player info and other state variables such as current
-    checkpoint count and input state.
-
     The method can be called in on_run_step or on_simulation_step calls.
+    See SimStateData for more information.
 
     Returns:
         SimStateData holding the simulation state
@@ -525,30 +556,7 @@ class TMInterface(object):
     '''
     Gets the internal event buffer used to hold player inputs in simulation mode.
 
-    While simulating a race, the game loads the inputs from a replay file
-    into an internal buffer and begins to apply "events" (inputs) from this
-    buffer. The buffer itself consists of 8 byte values, the first 4 bytes
-    is used for the event time and the last 4 is used for event data.
-
-    The event time is so called a "stored" time. The stored time is
-    defined as 100000 + race time. The stored time is saved in the
-    replay file and is also used in the internal buffer itself.
-
-    The event data is a 4 byte value consisting of the control name
-    index (the event type such as Accelerate, Brake etc.) and the
-    actual value used to describe the event. See EventBufferData 
-    for more information.
-
-    The buffer itself is stored in *decreasing* order. That means that the event
-    at index 0 in the list is the last one simulated in the race. The start and end
-    of the race is marked by special "_FakeIsRaceRunning" and "_FakeFinishLine" events.
-    These events mark the start and finish of the race, note that without the presence
-    of "_FakeIsRaceRunning" event, the race will not start at all. This event has a
-    constant stored time of 100000. 
-    
-    Before the starting event, a "Respawn" event can be generated by the game, this
-    event can also be saved in the replay file itself. The very first input that can be applied
-    by the player happens at stored time of 100010. 
+    See EventBufferData for more information.
 
     Returns:
         EventBufferData holding all the inputs of the current simulation
@@ -566,39 +574,39 @@ class TMInterface(object):
         names = [None] * 9
         _id = self.__read_int32()
         if _id != -1:
-            names[_id] = '_FakeIsRaceRunning'
+            names[_id] = BINARY_RACE_START_NAME
         
         _id = self.__read_int32()
         if _id != -1:
-            names[_id] = '_FakeFinishLine'
+            names[_id] = BINARY_RACE_FINISH_NAME
 
         _id = self.__read_int32()
         if _id != -1:
-            names[_id] = 'Accelerate'
+            names[_id] = BINARY_ACCELERATE_NAME
             
         _id = self.__read_int32()
         if _id != -1:
-            names[_id] = 'Brake'
+            names[_id] = BINARY_BRAKE_NAME
 
         _id = self.__read_int32()
         if _id != -1:
-            names[_id] = 'SteerLeft'
+            names[_id] = BINARY_LEFT_NAME
 
         _id = self.__read_int32()
         if _id != -1:
-            names[_id] = 'SteerRight'
+            names[_id] = BINARY_RIGHT_NAME
 
         _id = self.__read_int32()
         if _id != -1:
-            names[_id] = 'Steer'
+            names[_id] = ANALOG_STEER_NAME
             
         _id = self.__read_int32()
         if _id != -1:
-            names[_id] = 'Gas'
+            names[_id] = ANALOG_ACCELERATE_NAME
 
         _id = self.__read_int32()
         if _id != -1:
-            names[_id] = 'Respawn'
+            names[_id] = BINARY_RESPAWN_NAME
 
         data = EventBufferData(self.__read_uint32())
         data.control_names = names
@@ -610,6 +618,27 @@ class TMInterface(object):
         self.__clear_buffer()
         return data
 
+    '''
+    Registers a custom command within the console.
+
+    This function allows you to implement a custom command that is registered within TMInterface's console.
+    When executing the command, the on_custom_command method of the client will be called with additional
+    arguments such as the time range and processed arguments list.
+
+    It is completely up to the command implementation to process the time range and additional
+    arguments supplied in the on_custom_command hook. Quoted arguments such as filenames will
+    be automatically joined into one argument, even if they contain spaces. 
+
+    A console command is not immediately executed after submitting it to the console.
+    TMInterface executes commands asynchronously, processing a fixed amount of commands
+    each frame. This is done to prevent the game from hanging when loading scripts with
+    1000's of commands.
+
+    Use the log() method to output any info about the execution of your command.
+
+    Args:
+        command (str): the command to register, the command cannot contain spaces
+    '''
     def register_custom_command(self, command: str):
         msg = Message(MessageType.C_REGISTER_CUSTOM_COMMAND)
         msg.write_int32(0)
@@ -617,6 +646,15 @@ class TMInterface(object):
         self.__send_message(msg)
         self.__wait_for_server_response()
 
+    '''
+    Prints a message in TMInterface's console.
+
+    You can specify the severity of the command to highlight the line in a different color.
+
+    Args:
+        message (str): the message to print
+        severity (str): one of: "log", "success", "warning", "error", the message severity
+    '''
     def log(self, message: str, severity='log'):
         severity_id = 0
         if severity == 'success':

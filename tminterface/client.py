@@ -1,5 +1,9 @@
 
 from .structs import BFEvaluationInfo, BFEvaluationResponse
+import signal
+import time
+
+
 class Client(object):
     def __init__(self):
         pass
@@ -36,3 +40,29 @@ class Client(object):
 
     def on_bruteforce_evaluate(self, iface, info: BFEvaluationInfo) -> BFEvaluationResponse:
         return None
+
+
+'''
+Connects to a server with the specified server name and registers the client instance.
+The function closes the connection on SIGBREAK and SIGINT signals and will block
+until the client is deregistered in any way.
+
+Args:
+    client (Client): the client instance to register
+    server_name (str): the server name to connect to, TMInterface0 by default
+'''
+def run_client(client: Client, server_name: str = 'TMInterface0'):
+    from .interface import TMInterface
+
+    iface = TMInterface(server_name)
+    def handler(signum, frame):
+        iface.close()
+
+    signal.signal(signal.SIGBREAK, handler)
+    signal.signal(signal.SIGINT, handler)
+
+    iface.register(client)
+
+    while iface.running:
+        time.sleep(0)
+

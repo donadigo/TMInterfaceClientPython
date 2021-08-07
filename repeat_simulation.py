@@ -1,8 +1,8 @@
 from tminterface.interface import TMInterface
-from tminterface.client import Client
+from tminterface.client import Client, run_client
+from tminterface.structs import ANALOG_STEER_NAME, BINARY_ACCELERATE_NAME, BINARY_RACE_FINISH_NAME, BINARY_RACE_START_NAME
 import sys
-import signal
-import time
+
 
 class MainClient(Client):
     def __init__(self) -> None:
@@ -36,25 +36,12 @@ class MainClient(Client):
     def on_simulation_end(self, iface, result: int):
         print('Simulation finished')
 
+
 def main():
-    server_name = 'TMInterface0'
-    if len(sys.argv) > 1:
-        server_name = 'TMInterface' + str(sys.argv[1])
-
+    server_name = f'TMInterface{sys.argv[1]}' if len(sys.argv) > 1 else 'TMInterface0'
     print(f'Connecting to {server_name}...')
+    run_client(MainClient(), server_name)
 
-    iface = TMInterface(server_name)
-    def handler(signum, frame):
-        iface.close()
-
-    signal.signal(signal.SIGBREAK, handler)
-    signal.signal(signal.SIGINT, handler)
-
-    client = MainClient()
-    iface.register(client)
-
-    while iface.running:
-        time.sleep(0)
 
 if __name__ == '__main__':
     main()
