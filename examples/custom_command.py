@@ -4,7 +4,7 @@ import sys
 
 class MainClient(Client):
     def __init__(self) -> None:
-        pass
+        super(MainClient, self).__init__()
 
     def on_registered(self, iface: TMInterface) -> None:
         print(f'Registered to {iface.server_name}')

@@ -1,6 +1,5 @@
 from tminterface.interface import TMInterface
 from tminterface.client import Client, run_client
-from tminterface.structs import ANALOG_STEER_NAME, BINARY_ACCELERATE_NAME, BINARY_RACE_FINISH_NAME, BINARY_RACE_START_NAME
 import sys
 
 
@@ -9,15 +8,16 @@ class MainClient(Client):
         self.state = None
         self.finished = False
         self.simtime = 0
+        super(MainClient, self).__init__()
 
     def on_registered(self, iface: TMInterface) -> None:
         print(f'Registered to {iface.server_name}')
 
-    def on_simulation_begin(self, iface):
+    def on_simulation_begin(self, iface: TMInterface):
         iface.remove_state_validation()
         self.finished = False
 
-    def on_simulation_step(self, iface, _time: int):
+    def on_simulation_step(self, iface: TMInterface, _time: int):
         self.simtime = _time
         if self.simtime == 2600:
             self.state = iface.get_simulation_state()
@@ -26,7 +26,7 @@ class MainClient(Client):
             iface.rewind_to_state(self.state)
             self.finished = False
 
-    def on_checkpoint_count_changed(self, iface, current: int, target: int):
+    def on_checkpoint_count_changed(self, iface: TMInterface, current: int, target: int):
         print(f'Reached checkpoint {current}/{target}')
         if current == target:
             print(f'Finished the race at {self.simtime - 2610}')

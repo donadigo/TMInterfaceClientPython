@@ -7,7 +7,8 @@ setup(
     description = 'A client for TMInterface, a TrackMania TAS tool',
     author = 'Adam Bieńkowski',
     author_email = 'donadigos159@gmail.com',
-    url = 'https://github.com/donadigo/TMInterfaceClient',
+    url = 'https://github.com/donadigo/TMInterfaceClientPython',
+    download_url = 'https://github.com/donadigo/TMInterfaceClientPython/archive/refs/tags/0.1.tar.gz',
     keywords = ['TMInterface', 'client', 'TrackMania'],
     install_requires=[
         'numpy',

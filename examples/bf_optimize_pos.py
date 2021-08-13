@@ -1,4 +1,4 @@
-from tminterface.structs import BFEvaluationDecision, BFEvaluationInfo, BFEvaluationResponse, BFPhase, BFTarget
+from tminterface.structs import BFEvaluationDecision, BFEvaluationInfo, BFEvaluationResponse, BFPhase
 from tminterface.interface import TMInterface
 from tminterface.client import Client, run_client
 import sys
@@ -12,16 +12,19 @@ class MainClient(Client):
         self.force_accept = False
         self.lowest_time = 0
         self.phase = BFPhase.INITIAL
+        self.current_ending_pos = [0, 0, 0]
+        self.target_ending_pos = [0, 0, 0]
+        super(MainClient, self).__init__()
 
     def on_registered(self, iface: TMInterface) -> None:
         print(f'Registered to {iface.server_name}')
         iface.execute_command('set controller bruteforce')
         iface.execute_command('set bf_search_forever true')
     
-    def on_simulation_begin(self, iface):
+    def on_simulation_begin(self, iface: TMInterface):
         self.lowest_time = iface.get_event_buffer().events_duration
 
-    def on_bruteforce_evaluate(self, iface, info: BFEvaluationInfo) -> BFEvaluationResponse:
+    def on_bruteforce_evaluate(self, iface: TMInterface, info: BFEvaluationInfo) -> BFEvaluationResponse:
         self.current_time = info.time - 2610
         self.phase = info.phase
 
@@ -40,13 +43,13 @@ class MainClient(Client):
 
         return response
 
-    def on_checkpoint_count_changed(self, iface, current: int, target: int):
+    def on_checkpoint_count_changed(self, iface: TMInterface, current: int, target: int):
         if current == target:
             if self.phase == BFPhase.INITIAL:
                 self.lowest_time = self.current_time
-                self.target_ending_pos = iface.get_simulation_state().get_position()
+                self.target_ending_pos = iface.get_simulation_state().position
             elif self.phase == BFPhase.SEARCH:
-                self.current_ending_pos = iface.get_simulation_state().get_position()
+                self.current_ending_pos = iface.get_simulation_state().position
                 if self.current_time <= self.lowest_time:
                     self.do_accept = True
 

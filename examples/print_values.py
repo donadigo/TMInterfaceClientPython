@@ -5,26 +5,22 @@ import sys
 
 class MainClient(Client):
     def __init__(self) -> None:
-        pass
+        super(MainClient, self).__init__()
 
     def on_registered(self, iface: TMInterface) -> None:
         print(f'Registered to {iface.server_name}')
-        iface.register_custom_command('custom')
 
     def on_run_step(self, iface: TMInterface, _time: int):
         if _time >= 0:
             state = iface.get_simulation_state()
 
-            speed = state.get_display_speed()
-            vel = state.get_velocity()
-            pos = state.get_position()
-            aim = state.get_aim_direction()
-            # print(f'Time: {_time}, Display Speed: {speed}, Position: {pos}, Velocity: {vel}, Aim Direction: {aim}')
-
-    def on_custom_command(self, iface, time_from: int, time_to: int, command: str, args: list):
-        print(time_from, time_to)
-        print(command)
-        print(args)
+            print(
+                f'Time: {_time}\n' 
+                f'Display Speed: {state.display_speed}\n'
+                f'Position: {state.position}\n'
+                f'Velocity: {state.velocity}\n'
+                f'Aim Direction: {state.aim_direction}\n'
+            )
 
 
 def main():
