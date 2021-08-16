@@ -9,7 +9,7 @@ from tminterface.structs import BFEvaluationResponse, BFEvaluationInfo, BFPhase,
 from tminterface.eventbuffer import EventBufferData, Event
 from tminterface.constants import *
 from enum import IntEnum, auto
-
+from win32event import OpenEvent, SetEvent, ResetEvent, WaitForSingleObject, EVENT_ALL_ACCESS, INFINITE
 
 class MessageType(IntEnum):
     S_RESPONSE = auto()
@@ -158,7 +158,8 @@ class TMInterface(object):
         self.client = None
         self.empty_buffer = bytearray(self.buffer_size)
         self.thread = None
-        self.request_close = False
+        self.client_event = None
+        self.server_event = None
 
     def register(self, client: Client) -> bool:
         """
@@ -185,6 +186,9 @@ class TMInterface(object):
         self.registered = False
         self.client = client
 
+        self.client_event = OpenEvent(EVENT_ALL_ACCESS, False, 'TMInterfaceClientEvent')
+        self.server_event = OpenEvent(EVENT_ALL_ACCESS, False, 'TMInterfaceServerEvent')
+
         if self.thread is None:
             self.thread = threading.Thread(target=self.__main_thread)
             self.thread.daemon = True
@@ -204,13 +208,15 @@ class TMInterface(object):
         will be called with the instance of the TMInterface class.
         """
         if self.registered:
+            self.running = False
+            self.thread.join()
+            self.thread = None
+            self.client.on_deregistered(self)
+
             msg = Message(MessageType.C_DEREGISTER)
             msg.write_int32(0)
             self.__send_message(msg)
-            self.client.on_deregistered(self)
-            self.thread = None
 
-        self.running = False
 
     def set_timeout(self, timeout_ms: int):
         """
@@ -259,10 +265,10 @@ class TMInterface(object):
         Sets individual input states for the car. If successfully applied, 
         key states are guaranteed to be applied at next physics tick.
         If you want to apply an input state that happens at 500ms, call
-        send this message at 490ms (one step before). 
+        this method at 490ms (one step before).
 
         Note that it is not guaranteed that the game will actually process the input
-        in the RUN mode. This can happen when setting the game speed to high factors
+        in the MODE_RUN mode. This can happen when setting the game speed to high factors
         (such as >100). This does not affect the simulation context.
         
         In a simulation context, the server will add new input events to the existing
@@ -839,11 +845,12 @@ class TMInterface(object):
             if not self.registered:
                 msg = Message(MessageType.C_REGISTER)
                 self.__send_message(msg)
-                self.__wait_for_server_response()
-                self.registered = True
+
+            WaitForSingleObject(self.server_event, INFINITE)
+            ResetEvent(self.server_event)
 
             self.__process_server_message()
-            time.sleep(0)
+            # time.sleep(0)
 
     def __process_server_message(self):
         if self.mfile is None:
@@ -851,8 +858,8 @@ class TMInterface(object):
 
         self.mfile.seek(0)
         msgtype = self.__read_int32()
-        if msgtype & 0xFF00 == 0:
-            return
+        # if msgtype & 0xFF00 == 0:
+        #     return
 
         msgtype &= 0xFF
 
@@ -920,10 +927,13 @@ class TMInterface(object):
         if self.mfile is None:
             return
 
+        WaitForSingleObject(self.server_event, INFINITE)
+        ResetEvent(self.server_event)
+
         self.mfile.seek(0)
-        while self.__read_int32() != MessageType.S_RESPONSE | 0xFF00:
-            self.mfile.seek(0)
-            time.sleep(0)
+        # while self.__read_int32() != MessageType.S_RESPONSE | 0xFF00:
+        #     self.mfile.seek(0)
+        #     time.sleep(0)
 
         # self.mfile.seek(4)
         # error_code = self.__read_int32()
@@ -948,8 +958,9 @@ class TMInterface(object):
         self.mfile.seek(0)
         self.mfile.write(data)
 
-        self.mfile.seek(1)
-        self.mfile.write(bytearray([0xFF]))
+        SetEvent(self.client_event)
+        # self.mfile.seek(1)
+        # self.mfile.write(bytearray([0xFF]))
 
     def __clear_buffer(self):
         self.mfile.seek(0)
