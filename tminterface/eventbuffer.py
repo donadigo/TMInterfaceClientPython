@@ -110,6 +110,7 @@ class EventBufferData(object):
             a deep copy of the original event buffer
         """
         cpy = EventBufferData(self.events_duration)
+        cpy.control_names = self.control_names[:]
         cpy.events = self.events[:]
         return cpy
 

@@ -93,13 +93,6 @@ class SimStateData(object):
 
         return self.__get_vec3(self.dyna, 512)
 
-    @property
-    def aim_direction(self) -> list:
-        if (self.flags & SIM_HAS_DYNA) == 0:
-            return [0, 0, 0]
-
-        return self.__get_vec3(self.dyna, 488)
-
     # Available only in run context
     @property
     def display_speed(self) -> int:
@@ -124,13 +117,25 @@ class SimStateData(object):
         self.__set_vec3(self.dyna, 512, vel)
         return True
 
-    @aim_direction.setter
-    def aim_direction(self, aim: list) -> bool:
+    @property
+    def rotation_matrix(self) -> list:
+        if (self.flags & SIM_HAS_DYNA) == 0:
+            return [[0, 0, 0]] * 3
+
+        m1 = self.__get_vec3(self.dyna, 464)
+        m2 = self.__get_vec3(self.dyna, 476)
+        m3 = self.__get_vec3(self.dyna, 488)
+
+        return [m1, m2, m3]
+
+    @rotation_matrix.setter
+    def rotation_matrix(self, matrix: list) -> bool:
         if (self.flags & SIM_HAS_DYNA) == 0:
             return False
 
-        self.__set_vec3(self.dyna, 488, aim)
-        return True
+        self.__set_vec3(self.dyna, 464, matrix[0])
+        self.__set_vec3(self.dyna, 476, matrix[1])
+        self.__set_vec3(self.dyna, 488, matrix[2])
 
     @property
     def race_time(self) -> int:
