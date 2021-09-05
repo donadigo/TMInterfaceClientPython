@@ -258,7 +258,7 @@ class TMInterface(object):
         Sets individual input states for the car. If successfully applied, 
         key states are guaranteed to be applied at next physics tick.
         If you want to apply an input state that happens at 500ms, call
-        method at 490ms (one step before).
+        this method at 490ms (one step before).
 
         Note that it is not guaranteed that the game will actually process the input
         in the RUN mode. This can happen when setting the game speed to high factors
