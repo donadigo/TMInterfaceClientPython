@@ -339,7 +339,7 @@ class TMInterface(object):
         all other input events are cleared. If you want to preserve existing input events,
         pass sim_clear_events=False.
 
-        The function will respawn the car to the nearest respectable checkpoint or
+        The function will respawn the car to the nearest respawnable checkpoint or
         if there was no passed checkpoints, restart the race. The behaviour of this function
         also depends on the start_respawn console variable set within TMInterface.
         If start_respawn is set to true, respawning without any passed checkpoints will
