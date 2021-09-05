@@ -756,7 +756,7 @@ class TMInterface(object):
         info.inputs_extend_steer = bool(self.__read_int32())
 
         resp = self.client.on_bruteforce_evaluate(self, info)
-        if not resp:
+        if resp is None:
             resp = BFEvaluationResponse()
 
         msg = Message(MessageType.C_PROCESSED_CALL)

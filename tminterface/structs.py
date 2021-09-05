@@ -225,6 +225,6 @@ class BFEvaluationInfo(object):
 
 
 class BFEvaluationResponse(object):
-    def __init__(self) -> None:
-        self.decision = BFEvaluationDecision.CONTINUE
-        self.rewind_time = -1
+    def __init__(self, decision: BFEvaluationDecision = BFEvaluationDecision.CONTINUE, rewind_time: int = -1) -> None:
+        self.decision = decision
+        self.rewind_time = rewind_time

@@ -1,3 +1,4 @@
+from typing import Union
 
 from tminterface.structs import BFEvaluationInfo, BFEvaluationResponse
 import signal
@@ -38,8 +39,8 @@ class Client(object):
     def on_custom_command(self, iface, time_from: int, time_to: int, command: str, args: list):
         pass
 
-    def on_bruteforce_evaluate(self, iface, info: BFEvaluationInfo) -> BFEvaluationResponse:
-        return None
+    def on_bruteforce_evaluate(self, iface, info: BFEvaluationInfo) -> Union[BFEvaluationResponse, None]:
+        pass
 
 def run_client(client: Client, server_name: str = 'TMInterface0'):
     """
