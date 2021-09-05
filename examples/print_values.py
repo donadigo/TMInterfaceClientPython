@@ -19,7 +19,7 @@ class MainClient(Client):
                 f'Display Speed: {state.display_speed}\n'
                 f'Position: {state.position}\n'
                 f'Velocity: {state.velocity}\n'
-                f'Aim Direction: {state.aim_direction}\n'
+                f'Aim Direction: {state.rotation_matrix}\n'
             )
 
 

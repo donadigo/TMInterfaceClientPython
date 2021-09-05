@@ -139,7 +139,6 @@ class TMInterface(object):
 
     Args:
         server_name (str): the server tag to connect to
-        buffer_size (int): the buffer size used by the server, by default it's 16834
 
     Attributes:
         server_name (str): the server tag that's used
