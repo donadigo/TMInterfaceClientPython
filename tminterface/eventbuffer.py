@@ -14,7 +14,7 @@ class Event(object):
     The last 4 bytes contain the event data. This data contains the actual event type
     (e.g. whether it was acceleration, braking, steering etc.) and the value of the event.
 
-    The event type is 1 byte long and it signifes an index into an array of available event types.
+    The event type is 1 byte long and it signifies an index into an array of available event types.
     This array is variable based on the information contained within the replay file. As such,
     it is required to get index of the desired event type dynamically. You can easily get/set this property
     through the name_index accessors.
@@ -143,7 +143,7 @@ class EventBufferData(object):
         Depending on the event_name parameter, the method will interpret the value
         in different ways. If the event is an analog event, the value passed should
         be in the range of [-65536, 65536] where negative values represent left steering
-        and postive, right steering.
+        and positive, right steering.
         
         If the event is binary, the value should be False for disabling the input and 
         True for enabling it.

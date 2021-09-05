@@ -64,7 +64,7 @@ class SimStateData(object):
         self.input_running_event = Event(0)
         self.input_finish_event = Event(0)
         self.input_accelerate_event = Event(0)
-        self.input_brake_event  = Event(0)
+        self.input_brake_event = Event(0)
         self.input_left_event = Event(0)
         self.input_right_event = Event(0)
         self.input_steer_event = Event(0)

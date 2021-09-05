@@ -259,7 +259,7 @@ class TMInterface(object):
         Sets individual input states for the car. If successfully applied, 
         key states are guaranteed to be applied at next physics tick.
         If you want to apply an input state that happens at 500ms, call
-        send this message at 490ms (one step before). 
+        method at 490ms (one step before).
 
         Note that it is not guaranteed that the game will actually process the input
         in the RUN mode. This can happen when setting the game speed to high factors
@@ -339,7 +339,7 @@ class TMInterface(object):
         all other input events are cleared. If you want to preserve existing input events,
         pass sim_clear_events=False.
 
-        The function will respawn the car to the nearest respawnable checkpoint or
+        The function will respawn the car to the nearest respectable checkpoint or
         if there was no passed checkpoints, restart the race. The behaviour of this function
         also depends on the start_respawn console variable set within TMInterface.
         If start_respawn is set to true, respawning without any passed checkpoints will
