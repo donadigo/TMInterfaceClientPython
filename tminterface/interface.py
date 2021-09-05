@@ -2,7 +2,7 @@ import struct
 import threading
 import time
 import mmap
-from typing import Tuple
+from typing import Union
 
 from tminterface.client import Client
 from tminterface.structs import BFEvaluationResponse, BFEvaluationInfo, BFPhase, BFTarget, CheckpointData, SimStateData
@@ -811,7 +811,7 @@ class TMInterface(object):
 
         return True
 
-    def __read_vector(self, field_sizes: Tuple[int, list]) -> list:
+    def __read_vector(self, field_sizes: Union[int, list]) -> list:
         if self.mfile.tell() + 4 > self.buffer_size:
             return []
 
