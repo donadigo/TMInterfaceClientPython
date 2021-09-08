@@ -35,6 +35,7 @@ class MessageType(IntEnum):
     C_SIM_GET_EVENT_BUFFER = auto()
     C_GET_CONTEXT_MODE = auto()
     C_SIM_SET_EVENT_BUFFER = auto()
+    C_SIM_SET_TIME_LIMIT = auto()
     C_GET_CHECKPOINT_STATE = auto()
     C_SET_CHECKPOINT_STATE = auto()
     C_SET_GAME_SPEED = auto()
@@ -267,7 +268,7 @@ class TMInterface(object):
         
         In a simulation context, the server will add new input events to the existing
         event buffer such that that the next tick has the desired input state. By default,
-        all other input events are cleared. If you want to preserve existing input events,
+        all other input events are cleared. If you want to preserve existing input state & events,
         pass sim_clear_buffer=False.
 
         Arguments left, right, accelerate and brake are binary events. 
@@ -456,6 +457,11 @@ class TMInterface(object):
         or arrays.
 
         The method can be called in on_run_step or on_simulation_step calls.
+        Note that rewinding to a state in any of these hooks will immediately
+        simulate the next step after the hook. For example, rewinding to a state
+        saved at race time 0, will result in the next call to on_run_step/on_simulation_step
+        being at time 10. If you want to apply any immediate input state,
+        make sure to apply it in the same physics step as the call to rewind_to_state.
 
         Args:
             state (SimStateData): the state to restore, obtained through get_simulation_state
@@ -503,6 +509,12 @@ class TMInterface(object):
     def set_event_buffer(self, data: EventBufferData):
         """
         Replaces the internal event buffer used for simulation with a new one.
+
+        If you do not modify existing inputs or do not generate all events
+        beforehand, use TMInterface.set_input_state for dynamic input injection.
+        See EventBufferData for more information.
+
+        The events_duration and control_names fields are ignored in this call.
 
         Args:
             data (EventBufferData): the new event buffer
@@ -689,6 +701,33 @@ class TMInterface(object):
         event_buffer = self.get_event_buffer()
         event_buffer.clear()
         self.set_event_buffer(event_buffer)
+
+    def set_simulation_time_limit(self, time: int):
+        """
+        Sets the time limit of the simulation.
+
+        This allows for setting an arbitrary time limit for the running
+        simulation, making the game stop the simulation after the provided
+        time limit is exhausted.
+
+        By default, this limit is set to the finish time of the original replay
+        (taken from events duration found in the events buffer).
+
+        Note that setting the limit to a large value will extend the simulation
+        to that limit, even after the race is finished. Make sure to manage
+        finishing the race according to your application (e.g by rewinding to a state).
+
+        To reset the time to the original limit, pass -1.
+        This call applies only to the simulation context.
+
+        Args:
+            time (int): the time at which the game stops simulating, pass -1 to reset
+                        to the original value
+        """
+        msg = Message(MessageType.C_SIM_SET_TIME_LIMIT)
+        msg.write_int32(time)
+        self.__send_message(msg)
+        self.__wait_for_server_response()
 
     def register_custom_command(self, command: str):
         """

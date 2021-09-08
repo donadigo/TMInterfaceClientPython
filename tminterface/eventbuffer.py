@@ -81,7 +81,7 @@ class EventBufferData(object):
     The buffer itself is stored in *decreasing* order. That means that the event
     at index 0 in the list is the last one simulated in the race. The start and end
     of the race is marked by special "_FakeIsRaceRunning" and "_FakeFinishLine" events.
-    These events mark the start and finish of the race, note that without the presence
+    These events mark the start and finish of the race. Note that without the presence
     of "_FakeIsRaceRunning" event, the race will not start at all. This event has a
     constant stored time of 100000.
 

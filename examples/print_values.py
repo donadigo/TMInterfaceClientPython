@@ -2,7 +2,6 @@ from tminterface.interface import TMInterface
 from tminterface.client import Client, run_client
 import sys
 
-
 class MainClient(Client):
     def __init__(self) -> None:
         super(MainClient, self).__init__()
@@ -19,7 +18,7 @@ class MainClient(Client):
                 f'Display Speed: {state.display_speed}\n'
                 f'Position: {state.position}\n'
                 f'Velocity: {state.velocity}\n'
-                f'Aim Direction: {state.aim_direction}\n'
+                f'YPW: {state.yaw_pitch_roll}\n'
             )
 
 

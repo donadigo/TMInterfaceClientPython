@@ -2,6 +2,8 @@ import struct
 from enum import IntEnum
 from tminterface.constants import MODE_RUN, SIM_HAS_TIMERS, SIM_HAS_DYNA, SIM_HAS_PLAYER_INFO
 from tminterface.eventbuffer import Event
+from tminterface.util import mat3_to_quat, quat_to_ypw
+import numpy as np
 
 
 class CheckpointData(object):
@@ -136,6 +138,14 @@ class SimStateData(object):
         self.__set_vec3(self.dyna, 464, matrix[0])
         self.__set_vec3(self.dyna, 476, matrix[1])
         self.__set_vec3(self.dyna, 488, matrix[2])
+
+    @property
+    def yaw_pitch_roll(self):
+        if (self.flags & SIM_HAS_DYNA) == 0:
+            return [0, 0, 0]
+
+        mat = np.array(self.rotation_matrix)
+        return list(quat_to_ypw(mat3_to_quat(mat)))
 
     @property
     def race_time(self) -> int:

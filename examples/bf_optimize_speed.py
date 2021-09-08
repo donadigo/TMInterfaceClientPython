@@ -26,7 +26,7 @@ class MainClient(Client):
         self.lowest_time = iface.get_event_buffer().events_duration
 
     def on_bruteforce_evaluate(self, iface: TMInterface, info: BFEvaluationInfo) -> BFEvaluationResponse:
-        self.current_time = info.time - 2610
+        self.current_time = info.time
         self.phase = info.phase
 
         response = BFEvaluationResponse()
