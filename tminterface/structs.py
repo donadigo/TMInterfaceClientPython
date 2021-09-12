@@ -140,7 +140,7 @@ class SimStateData(object):
         self.__set_vec3(self.dyna, 488, matrix[2])
 
     @property
-    def yaw_pitch_roll(self):
+    def yaw_pitch_roll(self) -> np.array:
         if (self.flags & SIM_HAS_DYNA) == 0:
             return [0, 0, 0]
 

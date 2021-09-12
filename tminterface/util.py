@@ -85,7 +85,7 @@ def mat3_to_quat(mat: np.array) -> np.array:
         mat (np.array): a 3x3 rotation matrix to convert
 
     Returns:
-        np.array: the quaternion consisting of 4 elements
+        np.array: the quaternion consisting of 4 elements (x, y, z, w)
     """
     trace = np.trace(mat)
 
