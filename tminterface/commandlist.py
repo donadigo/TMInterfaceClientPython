@@ -5,6 +5,7 @@ from io import IOBase
 BOT_COMMANDS = ['press', 'rel', 'steer', 'gas']
 BOT_INPUT_TYPES = ['up', 'down', 'left', 'right', 'enter', 'delete', 'horn', 'steer', 'gas']
 
+
 class InputType(IntEnum):
     """
     The InputType enum represents an input type that is coupled with its state.
@@ -36,7 +37,7 @@ class InputType(IntEnum):
         s = s.lower()
         if s not in BOT_INPUT_TYPES:
             return InputType.UNKNOWN
-        
+
         return InputType(BOT_INPUT_TYPES.index(s))
 
     def to_str(self) -> str:
@@ -173,7 +174,7 @@ class CommandList(object):
              a file handle opened with open()
              a string containing the command list
              None to create an empty list
-    
+
     Attributes:
         commands (list): the list containing all immediate commands
         timed_commands (list): the list containing all timed commands, including input commands
@@ -200,7 +201,7 @@ class CommandList(object):
 
             for command in CommandList._split_input(line):
                 self._parse_command(command)
-        
+
     def _parse_command(self, command):
         args = CommandList._split_command_args(command)
         if not args:
@@ -257,7 +258,7 @@ class CommandList(object):
         script = ''
         for command in self.commands:
             script += f'{command.to_script()}\n'
-        
+
         for command in self.sorted_timed_commands():
             script += f'{command.to_script()}\n'
 
@@ -278,7 +279,7 @@ class CommandList(object):
         for i, c in enumerate(command_input):
             if c == '\"':
                 in_quotes = not in_quotes
-            
+
             if not in_quotes and c == ';':
                 commands.append(command_input[offset:i])
                 offset = i + 1
@@ -305,10 +306,10 @@ class CommandList(object):
                 if closing != -1:
                     if closing - i > 0:
                         args.append(command[i:closing])
-                    
+
                     i = closing
                     offset = i + 1
-        
+
             i += 1
 
         if len(command) - offset > 0:
@@ -329,7 +330,7 @@ class CommandList(object):
 
         Args:
             range_str (str): the time range to parse
-        
+
         Returns:
             tuple: a tuple of two int's (from, to)
         """
@@ -352,10 +353,10 @@ class CommandList(object):
         tokens = time_str.split('.', 2)
         if len(tokens) < 2:
             return -1
-        
+
         if not tokens[0] or not tokens[1]:
             return -1
-        
+
         tokens[1] = tokens[1][:2].ljust(2, '0')
 
         try:
@@ -383,11 +384,11 @@ class CommandList(object):
                 return int(time_str)
             except ValueError:
                 return -1
-        
+
         tokens = time_str.split(':', 3)
         if not tokens:
             return -1
-        
+
         tokens_len = len(tokens)
         if tokens_len == 1:
             return CommandList._parse_seconds(time_str)
@@ -397,7 +398,7 @@ class CommandList(object):
             except ValueError:
                 return -1
 
-            seconds  = CommandList._parse_seconds(tokens[1])
+            seconds = CommandList._parse_seconds(tokens[1])
             if seconds == -1:
                 return -1
 
@@ -414,5 +415,5 @@ class CommandList(object):
                 return -1
 
             return hours * 3600000 + minutes * 60000 + seconds
-        
+
         return -1

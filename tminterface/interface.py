@@ -173,7 +173,7 @@ class TMInterface(object):
 
         Args:
             client (Client): a Client instance to register
-        
+
         Returns:
             True if registration was scheduled, False if client is already registered
         """
@@ -265,7 +265,7 @@ class TMInterface(object):
         Note that it is not guaranteed that the game will actually process the input
         in the RUN mode. This can happen when setting the game speed to high factors
         (such as >100). This does not affect the simulation context.
-        
+
         In a simulation context, the server will add new input events to the existing
         event buffer such that that the next tick has the desired input state. By default,
         all other input events are cleared. If you want to preserve existing input state & events,
