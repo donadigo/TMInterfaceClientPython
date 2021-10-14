@@ -130,10 +130,7 @@ class TimedCommand(Command):
 
             input_type = InputType.from_str(self.args[1])
         elif action == 'steer' or action == 'gas':
-            if action == 'steer':
-                input_type = InputType.STEER
-            else:
-                input_type = InputType.GAS
+            input_type = InputType.from_str(action)
 
             if not self.is_ending:
                 try:
@@ -195,7 +192,7 @@ class CommandList(object):
 
     def _parse(self):
         for line in self.content.split('\n'):
-            line = line.strip().split('#')[0]
+            line = line.split('#')[0].strip()
             if not line or line.startswith('#'):
                 continue
 
@@ -334,7 +331,7 @@ class CommandList(object):
         Returns:
             tuple: a tuple of two int's (from, to)
         """
-        timestamps = range_str.split('-', 2)
+        timestamps = range_str.split('-', 1)
         timestamps_len = len(timestamps)
         if timestamps_len == 1:
             return CommandList.parse_time(timestamps[0]), -1
@@ -350,7 +347,7 @@ class CommandList(object):
 
     @staticmethod
     def _parse_seconds(time_str: str) -> int:
-        tokens = time_str.split('.', 2)
+        tokens = time_str.split('.', 1)
         if len(tokens) < 2:
             return -1
 
@@ -385,7 +382,7 @@ class CommandList(object):
             except ValueError:
                 return -1
 
-        tokens = time_str.split(':', 3)
+        tokens = time_str.split(':', 2)
         if not tokens:
             return -1
 
