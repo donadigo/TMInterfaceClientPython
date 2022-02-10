@@ -2,7 +2,7 @@ from distutils.core import setup
 setup(
     name = 'tminterface',
     packages = ['tminterface'],
-    version = '0.2',
+    version = '0.3',
     license='GPL3',
     description = 'A client for TMInterface, a TrackMania TAS tool',
     author = 'Adam Bieńkowski',

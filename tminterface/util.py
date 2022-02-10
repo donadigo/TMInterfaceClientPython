@@ -2,6 +2,8 @@ from numpy import int32
 import numpy as np
 import math
 
+EPSILON = 0.00001
+
 def data_to_analog_value(data: int) -> int:
     """
     Converts an internal analog state value to a [-65536, 65536] range.
@@ -59,7 +61,11 @@ def quat_to_ypw(quat: np.array) -> np.array:
     """
     t0 = quat[2] * quat[1] + quat[3] * quat[0]
 
-    if abs(t0 - 0.5) < 0.00001 or t0 - 0.5 >= 0:
+    if abs(t0 + 0.5) < EPSILON or t0 + 0.5 <= 0:
+        yaw = math.atan2(quat[1], quat[0])
+        return np.array([yaw * 2, -1.57079637, 0])
+
+    if abs(t0 - 0.5) < EPSILON or t0 - 0.5 >= 0:
         yaw = math.atan2(quat[1], quat[0])
         return np.array([-yaw * 2, 1.57079637, 0])
 
