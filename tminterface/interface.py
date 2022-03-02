@@ -626,7 +626,10 @@ class TMInterface(object):
 
     def get_event_buffer(self) -> EventBufferData:
         """
-        Gets the internal event buffer used to hold player inputs in simulation mode.
+        Gets the internal event buffer used to hold player inputs in run or simulation mode.
+        If the server is in the run mode (that is, in a normal race controlled by the player),
+        this method returns the inputs of the current race. Note that new inputs will be added
+        to the buffer as the player or TMInterface injects inputs into the game.
 
         See EventBufferData for more information.
 

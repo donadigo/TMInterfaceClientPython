@@ -43,7 +43,8 @@ class Client(object):
         return None
 
     def on_client_exception(self, iface, exception: Exception):
-        pass
+        print(f'[Client] Exception reported: {exception}')
+
 
 def run_client(client: Client, server_name: str = 'TMInterface0', buffer_size=DEFAULT_SERVER_SIZE):
     """
