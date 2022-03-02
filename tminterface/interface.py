@@ -53,6 +53,7 @@ RESPONSE_TOO_LONG = 1
 CLIENT_ALREADY_REGISTERED = 2
 NO_EVENT_BUFFER = 3
 NO_PLAYER_INFO = 4
+COMMAND_ALREADY_REGISTERED = 5
 
 MAXINT32 = 2 ** 31 - 1
 
@@ -125,6 +126,10 @@ class Message(object):
 
     def __len__(self):
         return 8 + len(self.data)
+
+
+class ServerException(Exception):
+    pass
 
 
 class TMInterface(object):
@@ -568,10 +573,10 @@ class TMInterface(object):
 
         self.mfile.seek(4)
         error_code = self._read_int32()
-        if (error_code & NO_PLAYER_INFO) == 0:
-            data = self._read_checkpoint_state()
-        else:
-            data = None
+        if error_code == NO_PLAYER_INFO:
+            raise ServerException('Failed to get checkpoint state: no player info available')
+
+        data = self._read_checkpoint_state()
 
         self._clear_buffer()
         return data
@@ -616,10 +621,10 @@ class TMInterface(object):
         state.input_gas_event = self._read_event()
         state.num_respawns = self._read_uint32()
 
-        if (error_code & NO_PLAYER_INFO) == 0:
-            state.cp_data = self._read_checkpoint_state()
-        else:
-            state.cp_data = CheckpointData([], [])
+        if error_code == NO_PLAYER_INFO:
+            raise ServerException('Failed to get checkpoint state: no player info available')
+
+        state.cp_data = self._read_checkpoint_state()
 
         self._clear_buffer()
         return state
@@ -643,7 +648,7 @@ class TMInterface(object):
         self.mfile.seek(4)
         error_code = self._read_uint32()
         if error_code == NO_EVENT_BUFFER:
-            return EventBufferData(0)
+            raise ServerException('Failed to get event buffer: no event buffer available')
 
         names = [None] * 10
         _id = self._read_int32()
@@ -761,7 +766,14 @@ class TMInterface(object):
         msg.write_int32(0)
         self._write_vector(msg, [ord(c) for c in command], 1)
         self._send_message(msg)
-        self._wait_for_server_response()
+        self._wait_for_server_response(False)
+
+        self.mfile.seek(4)
+        error_code = self._read_int32()
+        if error_code == COMMAND_ALREADY_REGISTERED:
+            raise ServerException(f'Failed to register custom command: {command} is already registered')
+
+        self._clear_buffer()
 
     def log(self, message: str, severity='log'):
         """
@@ -787,7 +799,7 @@ class TMInterface(object):
         self._send_message(msg)
         self._wait_for_server_response()
 
-    def __on_bruteforce_validate_call(self, msgtype: MessageType):
+    def _on_bruteforce_validate_call(self, msgtype: MessageType):
         info = BFEvaluationInfo()
         info.phase = BFPhase(self._read_int32())
         info.target = BFTarget(self._read_int32())
@@ -932,7 +944,7 @@ class TMInterface(object):
             self.client.on_laps_count_changed(self, current)
             self._respond_to_call(msgtype)
         elif msgtype == MessageType.S_ON_BRUTEFORCE_EVALUATE:
-            self.__on_bruteforce_validate_call(msgtype)
+            self._on_bruteforce_validate_call(msgtype)
         elif msgtype == MessageType.S_ON_REGISTERED:
             self.registered = True
             self.client.on_registered(self)
@@ -969,13 +981,6 @@ class TMInterface(object):
         while self._read_int32() != MessageType.S_RESPONSE | 0xFF00:
             self.mfile.seek(0)
             time.sleep(0)
-
-        # self.mfile.seek(4)
-        # error_code = self.__read_int32()
-        # if error_code != 0:
-        #     print('Got error code:', error_code)
-
-        # self.mfile.seek(0)
 
         if clear:
             self._clear_buffer()
