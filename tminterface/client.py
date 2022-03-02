@@ -1,5 +1,6 @@
 
 from tminterface.structs import BFEvaluationInfo, BFEvaluationResponse
+from tminterface.constants import DEFAULT_SERVER_SIZE
 import signal
 import time
 
@@ -41,19 +42,25 @@ class Client(object):
     def on_bruteforce_evaluate(self, iface, info: BFEvaluationInfo) -> BFEvaluationResponse:
         return None
 
-def run_client(client: Client, server_name: str = 'TMInterface0'):
+    def on_client_exception(self, iface, exception: Exception):
+        pass
+
+def run_client(client: Client, server_name: str = 'TMInterface0', buffer_size=DEFAULT_SERVER_SIZE):
     """
     Connects to a server with the specified server name and registers the client instance.
     The function closes the connection on SIGBREAK and SIGINT signals and will block
-    until the client is deregistered in any way.
+    until the client is deregistered in any way. You can set the buffer size yourself to use for
+    the connection, by specifying the buffer_size parameter. Using a custom size requires
+    launching TMInterface with the /serversize command line parameter: TMInterface.exe /serversize=size.
 
     Args:
         client (Client): the client instance to register
         server_name (str): the server name to connect to, TMInterface0 by default
+        buffer_size (int): the buffer size to use, the default size is defined by tminterface.constants.DEFAULT_SERVER_SIZE
     """
     from .interface import TMInterface
 
-    iface = TMInterface(server_name)
+    iface = TMInterface(server_name, buffer_size)
 
     def handler(signum, frame):
         iface.close()

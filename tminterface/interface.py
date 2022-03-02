@@ -140,7 +140,10 @@ class TMInterface(object):
 
     Args:
         server_name (str): the server tag to connect to
-        buffer_size (int): the buffer size used by the server, by default it's 16834
+        buffer_size (int): the buffer size used by the server, the default is
+                           specified by tminterface.constants.DEFAULT_BUFFER_SIZE.
+                           Using a custom size requires launching TMInterface with the
+                           /serversize command line parameter: TMInterface.exe /serversize=size.
 
     Attributes:
         server_name (str): the server tag that's used
@@ -150,12 +153,12 @@ class TMInterface(object):
         buffer_size (int): the buffer size used for communication
         client (Client): the registered client that's controlling the server
     """
-    def __init__(self, server_name='TMInterface0'):
+    def __init__(self, server_name='TMInterface0', buffer_size=DEFAULT_SERVER_SIZE):
         self.server_name = server_name
         self.running = True
         self.registered = False
         self.mfile = None
-        self.buffer_size = 65536
+        self.buffer_size = buffer_size
         self.client = None
         self.empty_buffer = bytearray(self.buffer_size)
         self.thread = None
@@ -187,7 +190,7 @@ class TMInterface(object):
         self.client = client
 
         if self.thread is None:
-            self.thread = threading.Thread(target=self.__main_thread)
+            self.thread = threading.Thread(target=self._main_thread)
             self.thread.daemon = True
             self.thread.start()
 
@@ -207,7 +210,7 @@ class TMInterface(object):
         if self.registered:
             msg = Message(MessageType.C_DEREGISTER)
             msg.write_int32(0)
-            self.__send_message(msg)
+            self._send_message(msg)
             self.client.on_deregistered(self)
             self.thread = None
 
@@ -229,8 +232,8 @@ class TMInterface(object):
         """
         msg = Message(MessageType.C_SET_TIMEOUT)
         msg.write_int32(timeout_ms)
-        self.__send_message(msg)
-        self.__wait_for_server_response()
+        self._send_message(msg)
+        self._wait_for_server_response()
 
     def set_speed(self, speed: float):
         """
@@ -250,8 +253,8 @@ class TMInterface(object):
         """
         msg = Message(MessageType.C_SET_GAME_SPEED)
         msg.write_double(speed)
-        self.__send_message(msg)
-        self.__wait_for_server_response()
+        self._send_message(msg)
+        self._wait_for_server_response()
 
     def set_input_state(self, sim_clear_buffer: bool = True, **kwargs):
         """
@@ -326,8 +329,8 @@ class TMInterface(object):
         else:
             msg.write_int32(MAXINT32)
 
-        self.__send_message(msg)
-        self.__wait_for_server_response()
+        self._send_message(msg)
+        self._wait_for_server_response()
 
     def respawn(self, sim_clear_events: bool = True):
         """
@@ -355,8 +358,8 @@ class TMInterface(object):
 
         msg = Message(MessageType.C_RESPAWN)
         msg.write_int32(0)
-        self.__send_message(msg)
-        self.__wait_for_server_response()
+        self._send_message(msg)
+        self._wait_for_server_response()
 
     def give_up(self):
         """
@@ -367,8 +370,8 @@ class TMInterface(object):
         """
         msg = Message(MessageType.C_GIVE_UP)
         msg.write_int32(0)
-        self.__send_message(msg)
-        self.__wait_for_server_response()
+        self._send_message(msg)
+        self._wait_for_server_response()
 
     def horn(self, sim_clear_events: bool = True):
         """
@@ -389,8 +392,8 @@ class TMInterface(object):
 
         msg = Message(MessageType.C_HORN)
         msg.write_int32(0)
-        self.__send_message(msg)
-        self.__wait_for_server_response()
+        self._send_message(msg)
+        self._wait_for_server_response()
 
     def execute_command(self, command: str):
         """
@@ -404,9 +407,9 @@ class TMInterface(object):
         """
         msg = Message(MessageType.C_EXECUTE_COMMAND)
         msg.write_int32(0)
-        self.__write_vector(msg, [ord(c) for c in command], 1)
-        self.__send_message(msg)
-        self.__wait_for_server_response()
+        self._write_vector(msg, [ord(c) for c in command], 1)
+        self._send_message(msg)
+        self._wait_for_server_response()
 
     def remove_state_validation(self):
         """
@@ -422,8 +425,8 @@ class TMInterface(object):
         """
         msg = Message(MessageType.C_REMOVE_STATE_VALIDATION)
         msg.write_int32(0)
-        self.__send_message(msg)
-        self.__wait_for_server_response()
+        self._send_message(msg)
+        self._wait_for_server_response()
 
     def prevent_simulation_finish(self):
         """
@@ -437,8 +440,8 @@ class TMInterface(object):
         """
         msg = Message(MessageType.C_PREVENT_SIMULATION_FINISH)
         msg.write_int32(0)
-        self.__send_message(msg)
-        self.__wait_for_server_response()
+        self._send_message(msg)
+        self._wait_for_server_response()
 
     def rewind_to_state(self, state: SimStateData):
         """
@@ -490,8 +493,8 @@ class TMInterface(object):
         msg.write_uint32(state.num_respawns)
 
         self.__write_checkpoint_state(msg, state.cp_data)
-        self.__send_message(msg)
-        self.__wait_for_server_response()
+        self._send_message(msg)
+        self._wait_for_server_response()
 
     def set_checkpoint_state(self, data: CheckpointData):
         """
@@ -503,8 +506,8 @@ class TMInterface(object):
         """
         msg = Message(MessageType.C_SET_CHECKPOINT_STATE)
         self.__write_checkpoint_state(msg, data)
-        self.__send_message(msg)
-        self.__wait_for_server_response()
+        self._send_message(msg)
+        self._wait_for_server_response()
 
     def set_event_buffer(self, data: EventBufferData):
         """
@@ -526,9 +529,9 @@ class TMInterface(object):
         msg.write_int32(data.events_duration)
         events_tup = [(event.time, event.data) for event in data.events]
 
-        self.__write_vector(msg, events_tup, [4, 4])
-        self.__send_message(msg)
-        self.__wait_for_server_response()
+        self._write_vector(msg, events_tup, [4, 4])
+        self._send_message(msg)
+        self._wait_for_server_response()
 
     def get_context_mode(self) -> int:
         """
@@ -542,12 +545,12 @@ class TMInterface(object):
             int: MODE_SIMULATION (0) if the player is in the simulation mode, MODE_RUN (1) if in a normal race
         """
         msg = Message(MessageType.C_GET_CONTEXT_MODE)
-        self.__send_message(msg)
-        self.__wait_for_server_response(False)
+        self._send_message(msg)
+        self._wait_for_server_response(False)
 
         self.mfile.seek(8)
-        mode = self.__read_int32()
-        self.__clear_buffer()
+        mode = self._read_int32()
+        self._clear_buffer()
         return mode
 
     def get_checkpoint_state(self) -> CheckpointData:
@@ -560,17 +563,17 @@ class TMInterface(object):
             CheckpointData: the object that holds the two arrays representing checkpoint state
         """
         msg = Message(MessageType.C_GET_CHECKPOINT_STATE)
-        self.__send_message(msg)
-        self.__wait_for_server_response(False)
+        self._send_message(msg)
+        self._wait_for_server_response(False)
 
         self.mfile.seek(4)
-        error_code = self.__read_int32()
+        error_code = self._read_int32()
         if (error_code & NO_PLAYER_INFO) == 0:
-            data = self.__read_checkpoint_state()
+            data = self._read_checkpoint_state()
         else:
             data = None
 
-        self.__clear_buffer()
+        self._clear_buffer()
         return data
 
     def get_simulation_state(self) -> SimStateData:
@@ -584,16 +587,16 @@ class TMInterface(object):
             SimStateData: the object holding the simulation state
         """
         msg = Message(MessageType.C_SIM_GET_STATE)
-        self.__send_message(msg)
-        self.__wait_for_server_response(False)
+        self._send_message(msg)
+        self._wait_for_server_response(False)
 
         self.mfile.seek(4)
-        error_code = self.__read_int32()
+        error_code = self._read_int32()
 
         state = SimStateData()
-        state.version = self.__read_int32()
-        state.context_mode = self.__read_int32()
-        state.flags = self.__read_uint32()
+        state.version = self._read_int32()
+        state.context_mode = self._read_int32()
+        state.flags = self._read_uint32()
         state.timers = bytearray(self.mfile.read(TIMERS_SIZE))
         state.dyna = bytearray(self.mfile.read(DYNA_SIZE))
         state.scene_mobil = bytearray(self.mfile.read(SCENE_MOBIL_SIZE))
@@ -603,22 +606,22 @@ class TMInterface(object):
         state.player_info = bytearray(self.mfile.read(PLAYER_INFO_SIZE))
         state.internal_input_state = bytearray(self.mfile.read(INPUT_STATE_SIZE))
 
-        state.input_running_event = self.__read_event()
-        state.input_finish_event = self.__read_event()
-        state.input_accelerate_event = self.__read_event()
-        state.input_brake_event = self.__read_event()
-        state.input_left_event = self.__read_event()
-        state.input_right_event = self.__read_event()
-        state.input_steer_event = self.__read_event()
-        state.input_gas_event = self.__read_event()
-        state.num_respawns = self.__read_uint32()
+        state.input_running_event = self._read_event()
+        state.input_finish_event = self._read_event()
+        state.input_accelerate_event = self._read_event()
+        state.input_brake_event = self._read_event()
+        state.input_left_event = self._read_event()
+        state.input_right_event = self._read_event()
+        state.input_steer_event = self._read_event()
+        state.input_gas_event = self._read_event()
+        state.num_respawns = self._read_uint32()
 
         if (error_code & NO_PLAYER_INFO) == 0:
-            state.cp_data = self.__read_checkpoint_state()
+            state.cp_data = self._read_checkpoint_state()
         else:
             state.cp_data = CheckpointData([], [])
 
-        self.__clear_buffer()
+        self._clear_buffer()
         return state
 
     def get_event_buffer(self) -> EventBufferData:
@@ -631,63 +634,63 @@ class TMInterface(object):
             EventBufferData: the event buffer holding all the inputs of the current simulation
         """
         msg = Message(MessageType.C_SIM_GET_EVENT_BUFFER)
-        self.__send_message(msg)
-        self.__wait_for_server_response(False)
+        self._send_message(msg)
+        self._wait_for_server_response(False)
 
         self.mfile.seek(4)
-        error_code = self.__read_uint32()
+        error_code = self._read_uint32()
         if error_code == NO_EVENT_BUFFER:
             return EventBufferData(0)
 
         names = [None] * 10
-        _id = self.__read_int32()
+        _id = self._read_int32()
         if _id != -1:
             names[_id] = BINARY_RACE_START_NAME
 
-        _id = self.__read_int32()
+        _id = self._read_int32()
         if _id != -1:
             names[_id] = BINARY_RACE_FINISH_NAME
 
-        _id = self.__read_int32()
+        _id = self._read_int32()
         if _id != -1:
             names[_id] = BINARY_ACCELERATE_NAME
 
-        _id = self.__read_int32()
+        _id = self._read_int32()
         if _id != -1:
             names[_id] = BINARY_BRAKE_NAME
 
-        _id = self.__read_int32()
+        _id = self._read_int32()
         if _id != -1:
             names[_id] = BINARY_LEFT_NAME
 
-        _id = self.__read_int32()
+        _id = self._read_int32()
         if _id != -1:
             names[_id] = BINARY_RIGHT_NAME
 
-        _id = self.__read_int32()
+        _id = self._read_int32()
         if _id != -1:
             names[_id] = ANALOG_STEER_NAME
 
-        _id = self.__read_int32()
+        _id = self._read_int32()
         if _id != -1:
             names[_id] = ANALOG_ACCELERATE_NAME
 
-        _id = self.__read_int32()
+        _id = self._read_int32()
         if _id != -1:
             names[_id] = BINARY_RESPAWN_NAME
 
-        _id = self.__read_int32()
+        _id = self._read_int32()
         if _id != -1:
             names[_id] = BINARY_HORN_NAME
 
-        data = EventBufferData(self.__read_uint32())
+        data = EventBufferData(self._read_uint32())
         data.control_names = names
         event_data = self.__read_vector([4, 4])
         for item in event_data:
             ev = Event(item[0], item[1])
             data.events.append(ev)
 
-        self.__clear_buffer()
+        self._clear_buffer()
         return data
 
     def clear_event_buffer(self):
@@ -726,8 +729,8 @@ class TMInterface(object):
         """
         msg = Message(MessageType.C_SIM_SET_TIME_LIMIT)
         msg.write_int32(time)
-        self.__send_message(msg)
-        self.__wait_for_server_response()
+        self._send_message(msg)
+        self._wait_for_server_response()
 
     def register_custom_command(self, command: str):
         """
@@ -753,9 +756,9 @@ class TMInterface(object):
         """
         msg = Message(MessageType.C_REGISTER_CUSTOM_COMMAND)
         msg.write_int32(0)
-        self.__write_vector(msg, [ord(c) for c in command], 1)
-        self.__send_message(msg)
-        self.__wait_for_server_response()
+        self._write_vector(msg, [ord(c) for c in command], 1)
+        self._send_message(msg)
+        self._wait_for_server_response()
 
     def log(self, message: str, severity='log'):
         """
@@ -777,23 +780,23 @@ class TMInterface(object):
 
         msg = Message(MessageType.C_LOG)
         msg.write_int32(severity_id)
-        self.__write_vector(msg, [ord(c) for c in message], 1)
-        self.__send_message(msg)
-        self.__wait_for_server_response()
+        self._write_vector(msg, [ord(c) for c in message], 1)
+        self._send_message(msg)
+        self._wait_for_server_response()
 
     def __on_bruteforce_validate_call(self, msgtype: MessageType):
         info = BFEvaluationInfo()
-        info.phase = BFPhase(self.__read_int32())
-        info.target = BFTarget(self.__read_int32())
-        info.time = self.__read_int32()
-        info.modified_inputs_num = self.__read_int32()
-        info.inputs_min_time = self.__read_int32()
-        info.inputs_max_time = self.__read_int32()
-        info.max_steer_diff = self.__read_int32()
-        info.max_time_diff = self.__read_int32()
-        info.override_stop_time = self.__read_int32()
-        info.search_forever = bool(self.__read_int32())
-        info.inputs_extend_steer = bool(self.__read_int32())
+        info.phase = BFPhase(self._read_int32())
+        info.target = BFTarget(self._read_int32())
+        info.time = self._read_int32()
+        info.modified_inputs_num = self._read_int32()
+        info.inputs_min_time = self._read_int32()
+        info.inputs_max_time = self._read_int32()
+        info.max_steer_diff = self._read_int32()
+        info.max_time_diff = self._read_int32()
+        info.override_stop_time = self._read_int32()
+        info.search_forever = bool(self._read_int32())
+        info.inputs_extend_steer = bool(self._read_int32())
 
         resp = self.client.on_bruteforce_evaluate(self, info)
         if not resp:
@@ -803,27 +806,27 @@ class TMInterface(object):
         msg.write_int32(msgtype)
         msg.write_int32(resp.decision)
         msg.write_int32(resp.rewind_time)
-        self.__send_message(msg)
+        self._send_message(msg)
 
     def __write_checkpoint_state(self, msg: Message, data: CheckpointData):
         msg.write_int32(0)  # reserved
-        if self.__write_vector(msg, data.cp_states, 4):
-            self.__write_vector(msg, data.cp_times, [4, 4])
+        if self._write_vector(msg, data.cp_states, 4):
+            self._write_vector(msg, data.cp_times, [4, 4])
 
-    def __read_checkpoint_state(self):
-        self.__read_int32()  # reserved
+    def _read_checkpoint_state(self):
+        self._read_int32()  # reserved
         cp_states = self.__read_vector(4)
         cp_times = self.__read_vector([4, 4])
 
         data = CheckpointData(cp_states, cp_times)
         return data
 
-    def __read_event(self):
-        time = self.__read_uint32()
-        data = self.__read_int32()
+    def _read_event(self):
+        time = self._read_uint32()
+        data = self._read_int32()
         return Event(time, data)
 
-    def __write_vector(self, msg: Message, vector: list, field_sizes):
+    def _write_vector(self, msg: Message, vector: list, field_sizes):
         is_list = isinstance(field_sizes, list)
         if is_list:
             item_size = sum(field_sizes)
@@ -855,95 +858,95 @@ class TMInterface(object):
         if self.mfile.tell() + 4 > self.buffer_size:
             return []
 
-        size = self.__read_int32()
+        size = self._read_int32()
         vec = []
         for _ in range(size):
             if isinstance(field_sizes, list):
                 tup = []
                 for size in field_sizes:
-                    tup.append(self.__read_int(size))
+                    tup.append(self._read_int(size))
 
                 vec.append(tuple(tup))
             else:
-                vec.append(self.__read_int(field_sizes))
+                vec.append(self._read_int(field_sizes))
 
         return vec
 
-    def __main_thread(self):
+    def _main_thread(self):
         while self.running:
-            if not self.__ensure_connected():
+            if not self._ensure_connected():
                 time.sleep(0)
                 continue
 
             if not self.registered:
                 msg = Message(MessageType.C_REGISTER)
-                self.__send_message(msg)
-                self.__wait_for_server_response()
+                self._send_message(msg)
+                self._wait_for_server_response()
                 self.registered = True
 
-            self.__process_server_message()
+            self._process_server_message()
             time.sleep(0)
 
-    def __process_server_message(self):
+    def _process_server_message(self):
         if self.mfile is None:
             return
 
         self.mfile.seek(0)
-        msgtype = self.__read_int32()
+        msgtype = self._read_int32()
         if msgtype & 0xFF00 == 0:
             return
 
         msgtype &= 0xFF
 
         # error_code = self.__read_int32()
-        self.__skip(4)
+        self._skip(4)
 
         if msgtype == MessageType.S_SHUTDOWN:
             self.close()
             self.client.on_shutdown(self)
         elif msgtype == MessageType.S_ON_RUN_STEP:
-            _time = self.__read_int32()
+            _time = self._read_int32()
             self.client.on_run_step(self, _time)
-            self.__respond_to_call(msgtype)
+            self._respond_to_call(msgtype)
         elif msgtype == MessageType.S_ON_SIM_BEGIN:
             self.client.on_simulation_begin(self)
-            self.__respond_to_call(msgtype)
+            self._respond_to_call(msgtype)
         elif msgtype == MessageType.S_ON_SIM_STEP:
-            _time = self.__read_int32()
+            _time = self._read_int32()
             self.client.on_simulation_step(self, _time)
-            self.__respond_to_call(msgtype)
+            self._respond_to_call(msgtype)
         elif msgtype == MessageType.S_ON_SIM_END:
-            result = self.__read_int32()
+            result = self._read_int32()
             self.client.on_simulation_end(self, result)
-            self.__respond_to_call(msgtype)
+            self._respond_to_call(msgtype)
         elif msgtype == MessageType.S_ON_CHECKPOINT_COUNT_CHANGED:
-            current = self.__read_int32()
-            target = self.__read_int32()
+            current = self._read_int32()
+            target = self._read_int32()
             self.client.on_checkpoint_count_changed(self, current, target)
-            self.__respond_to_call(msgtype)
+            self._respond_to_call(msgtype)
         elif msgtype == MessageType.S_ON_LAPS_COUNT_CHANGED:
-            current = self.__read_int32()
+            current = self._read_int32()
             self.client.on_laps_count_changed(self, current)
-            self.__respond_to_call(msgtype)
+            self._respond_to_call(msgtype)
         elif msgtype == MessageType.S_ON_BRUTEFORCE_EVALUATE:
             self.__on_bruteforce_validate_call(msgtype)
         elif msgtype == MessageType.S_ON_REGISTERED:
             self.registered = True
             self.client.on_registered(self)
-            self.__respond_to_call(msgtype)
+            self._respond_to_call(msgtype)
         elif msgtype == MessageType.S_ON_CUSTOM_COMMAND:
-            _from = self.__read_int32()
-            to = self.__read_int32()
-            n_args = self.__read_int32()
-            command = self.__read_string()
+            _from = self._read_int32()
+            to = self._read_int32()
+            n_args = self._read_int32()
+            command = self._read_string()
             args = []
             for _ in range(n_args):
-                args.append(self.__read_string())
+                args.append(self._read_string())
 
             self.client.on_custom_command(self, _from, to, command, args)
-            self.__respond_to_call(msgtype)
+            self._respond_to_call(msgtype)
 
-    def __ensure_connected(self):
+    def _ensure_connected(self):
         if self.mfile is not None:
             return True
 
@@ -951,16 +954,16 @@ class TMInterface(object):
             self.mfile = mmap.mmap(-1, self.buffer_size, tagname=self.server_name)
             return True
         except Exception as e:
-            print(e)
+            self.client.on_client_exception(self, e)
 
         return False
 
-    def __wait_for_server_response(self, clear: bool = True):
+    def _wait_for_server_response(self, clear: bool = True):
         if self.mfile is None:
             return
 
         self.mfile.seek(0)
-        while self.__read_int32() != MessageType.S_RESPONSE | 0xFF00:
+        while self._read_int32() != MessageType.S_RESPONSE | 0xFF00:
             self.mfile.seek(0)
             time.sleep(0)
 
@@ -972,14 +975,14 @@ class TMInterface(object):
         # self.mfile.seek(0)
 
         if clear:
-            self.__clear_buffer()
+            self._clear_buffer()
 
-    def __respond_to_call(self, msgtype: int):
+    def _respond_to_call(self, msgtype: int):
         msg = Message(MessageType.C_PROCESSED_CALL)
         msg.write_int32(msgtype)
-        self.__send_message(msg)
+        self._send_message(msg)
 
-    def __send_message(self, message: Message):
+    def _send_message(self, message: Message):
         if self.mfile is None:
             return
 
@@ -990,43 +993,43 @@ class TMInterface(object):
         self.mfile.seek(1)
         self.mfile.write(bytearray([0xFF]))
 
-    def __clear_buffer(self):
+    def _clear_buffer(self):
         self.mfile.seek(0)
         self.mfile.write(self.empty_buffer)
 
-    def __read(self, num_bytes: int, typestr: str):
+    def _read(self, num_bytes: int, typestr: str):
         arr = self.mfile.read(num_bytes)
         try:
             return struct.unpack(typestr, arr)[0]
         except Exception as e:
-            print(e)
+            self.client.on_client_exception(self, e)
             return 0
 
-    def __read_int(self, size):
+    def _read_int(self, size):
         if size == 1:
-            return self.__read_uint8()
+            return self._read_uint8()
         if size == 2:
-            return self.__read_uint16()
+            return self._read_uint16()
         elif size == 4:
-            return self.__read_int32()
+            return self._read_int32()
 
         return 0
 
-    def __read_uint8(self):
-        return self.__read(1, 'B')
+    def _read_uint8(self):
+        return self._read(1, 'B')
 
-    def __read_int32(self):
-        return self.__read(4, 'i')
+    def _read_int32(self):
+        return self._read(4, 'i')
 
-    def __read_uint32(self):
-        return self.__read(4, 'I')
+    def _read_uint32(self):
+        return self._read(4, 'I')
 
-    def __read_uint16(self):
-        return self.__read(2, 'H')
+    def _read_uint16(self):
+        return self._read(2, 'H')
 
-    def __read_string(self):
+    def _read_string(self):
         chars = [chr(b) for b in self.__read_vector(1)]
         return ''.join(chars)
 
-    def __skip(self, n):
+    def _skip(self, n):
         self.mfile.seek(self.mfile.tell() + n)
