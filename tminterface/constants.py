@@ -29,3 +29,5 @@ BINARY_RACE_START_NAME = '_FakeIsRaceRunning'
 BINARY_RACE_FINISH_NAME = '_FakeFinishLine'
 ANALOG_STEER_NAME = 'Steer (analog)'
 ANALOG_ACCELERATE_NAME = 'Accelerate (analog)'
+
+DEFAULT_SERVER_SIZE = 65535

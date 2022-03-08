@@ -66,7 +66,7 @@ class Event(object):
 
 class EventBufferData(object):
     """
-    The internal event buffer used to hold player inputs in simulation mode.
+    The internal event buffer used to hold player inputs in run or simulation mode.
 
     While simulating a race, the game loads the inputs from a replay file
     into an internal buffer and begins to apply "events" (inputs) from this
