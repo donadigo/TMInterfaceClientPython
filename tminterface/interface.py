@@ -179,7 +179,7 @@ class TMInterface(object):
         registered, the method will return False.
 
         This method will initially start a new thread and send a message to the server
-        to register a new client. After a successful registration, Client.on_registered
+        to register a new client. After a successful registration, :meth:`Client.on_registered`
         will be called with the instance of the TMInterface class.
 
         Args:
@@ -212,7 +212,7 @@ class TMInterface(object):
         This method will send a message to the server
         to deregister the current client.
 
-        After a successful deregistration, Client.on_deregistered
+        After a successful deregistration, :meth:`Client.on_deregistered`
         will be called with the instance of the TMInterface class.
         """
         if self.registered:
@@ -748,7 +748,7 @@ class TMInterface(object):
         Registers a custom command within the console.
 
         This function allows you to implement a custom command that is registered within TMInterface's console.
-        When executing the command, the on_custom_command method of the client will be called with additional
+        When executing the command, the :meth:`Client.on_custom_command` method will be called with additional
         arguments such as the time range and processed arguments list.
 
         It is completely up to the command implementation to process the time range and additional

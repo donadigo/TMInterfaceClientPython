@@ -201,17 +201,45 @@ class SimStateData(object):
 
 
 class BFPhase(IntEnum):
+    """
+    The phase in which the bruteforce script is currently working.
+
+    The initial phase is executed at the beginning of the process and after each improvement.
+    It is used primarily for collecting data about the race e.g: the race time, position of the car,
+    checkpoint times etc. No state modification happens at this state and it is recommended to use this phase
+    to collect information about the current solution.
+
+    The search phase is when TMInterface is searching for a new improvement. In this phase, the process
+    changes inputs according to the user settings and evaluates the solution based on the current target.
+    """
     INITIAL = 0
     SEARCH = 1
 
 
 class BFTarget(IntEnum):
+    """
+    The bruteforce metric that is being currently optimized.
+    """
     FINISH_TIME = 0
     CHECKPOINT_TIME = 1
     TRIGGER = 2
 
 
 class BFEvaluationDecision(IntEnum):
+    """
+    The decision taken by the client in every bruteforce physics step.
+    Returned in :meth:`Client.on_bruteforce_evaluate` in an BFEvaluationResponse instance.
+
+    `CONTINUE`: run the default evaluation of the bruteforce script
+
+    `DO_NOTHING`: do not run any evaluation that could result in accepting or rejecting the evaluated solution
+
+    `ACCEPT`: accept the current solution as the new best one. Starts a new intial phase in the next physics step.
+
+    `REJECT`: rejects the current solution and generates a new one for next evaluation
+
+    `STOP`: stops the bruteforce script and lets the game simulate the race until the end
+    """
     CONTINUE = 0
     DO_NOTHING = 1
     ACCEPT = 2
@@ -220,6 +248,9 @@ class BFEvaluationDecision(IntEnum):
 
 
 class BFEvaluationInfo(object):
+    """
+    The bruteforce settings applied in the bruteforce process, including the current simulation race time.
+    """
     def __init__(self) -> None:
         self.phase = BFPhase.INITIAL
         self.target = BFTarget.FINISH_TIME
@@ -235,6 +266,15 @@ class BFEvaluationInfo(object):
 
 
 class BFEvaluationResponse(object):
+    """
+    The response object sent by :meth:`Client.on_bruteforce_evaluate`.
+    
+    If `decision` is set to :class:`BFEvaluationDecision.REJECT`,
+    you are allowed to change the inputs manually via the :meth:`TMInterface.set_event_buffer` method and
+    set the `rewind_time` to `timestamp - 10` where `timestamp` is the first input that has been
+    changed by your algorithm. Otherwise, TMInterface will automatically randomize the inputs according
+    to the current settings itself.
+    """
     def __init__(self) -> None:
         self.decision = BFEvaluationDecision.CONTINUE
         self.rewind_time = -1
