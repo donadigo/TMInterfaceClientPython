@@ -168,8 +168,11 @@ class CommandList(object):
 
     Args:
         obj: the resource that needs to be parsed, either:
+
              a file handle opened with open()
+
              a string containing the command list
+
              None to create an empty list
 
     Attributes:
