@@ -368,7 +368,7 @@ class CommandList(object):
         """
         Parses a singular timestamp which is either a number or a formatted time.
 
-        Parses a string like "947120" or "15:47.12" to anm integer time in milliseconds.
+        Parses a string like "947120" or "15:47.12" to an integer time in milliseconds.
 
         Args:
             time_str (str): the time string to parse
