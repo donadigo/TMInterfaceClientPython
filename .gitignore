@@ -1,0 +1,5 @@
+__pycache__/
+*.py[cod]
+docs/_static
+docs/_templates
+docs/_build
