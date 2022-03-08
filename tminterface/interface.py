@@ -129,6 +129,9 @@ class Message(object):
 
 
 class ServerException(Exception):
+    """
+    An exception thrown when the server cannot perform requested operation.
+    """
     pass
 
 
