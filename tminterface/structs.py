@@ -160,27 +160,27 @@ class SimStateData(object):
 
     @property
     def input_accelerate(self) -> bool:
-        return self.input_accelerate_event.data if self.context_mode == MODE_RUN else self.input_accelerate_event.binary_value
+        return self.input_accelerate_event.binary_value
 
     @property
     def input_brake(self) -> bool:
-        return self.input_brake_event.data if self.context_mode == MODE_RUN else self.input_brake_event.binary_value
+        return self.input_brake_event.binary_value
 
     @property
     def input_left(self) -> bool:
-        return self.input_left_event.data if self.context_mode == MODE_RUN else self.input_left_event.binary_value
+        return self.input_left_event.binary_value
 
     @property
     def input_right(self) -> bool:
-        return self.input_right_event.data if self.context_mode == MODE_RUN else self.input_right_event.binary_value
+        return self.input_right_event.binary_value
 
     @property
     def input_steer(self) -> int:
-        return self.input_steer_event.data if self.context_mode == MODE_RUN else self.input_steer_event.analog_value
+        return self.input_steer_event.analog_value
 
     @property
     def input_gas(self) -> int:
-        return self.input_gas_event.data if self.context_mode == MODE_RUN else self.input_gas_event.analog_value
+        return self.input_gas_event.analog_value
 
     @staticmethod
     def __get_int(buffer: bytearray, offset: int) -> int:
