@@ -503,7 +503,6 @@ class TMInterface(object):
         self.__write_checkpoint_state(msg, state.cp_data)
         self._send_message(msg)
 
-        #self.cp_count = len([time for (time, _) in self.get_checkpoint_state().cp_times if time != -1])
         # Send client the number of CPs and laps of the state rewinded to
         cp_count = len([time for (time, _) in state.cp_data.cp_times if time != -1])
         cp_target = len(state.cp_data.cp_times)
