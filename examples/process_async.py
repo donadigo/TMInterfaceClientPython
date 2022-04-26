@@ -45,7 +45,7 @@ def main():
 
     last_finished = False
     last_time = 0
-    while True:
+    while iface.registered:
         if last_finished != client.finished:
             last_finished = client.finished
             if last_finished:

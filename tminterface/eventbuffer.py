@@ -111,7 +111,7 @@ class EventBufferData(object):
         """
         cpy = EventBufferData(self.events_duration)
         cpy.control_names = self.control_names[:]
-        cpy.events = self.events[:]
+        cpy.events = [Event(ev.time, ev.data) for ev in self.events]
         return cpy
 
     def clear(self):
@@ -178,15 +178,15 @@ class EventBufferData(object):
         Any unspecified parameter will be skipped in the search and will not be compared.
         You may use this method to filter events based on time, event type and value. 
 
-        Find all analog steering events with value -65536::
+        Find all analog steering events with value -65536:
 
             matching = event_buffer.find(event_name=structs.ANALOG_STEER_NAME, value=-65536)
 
-        Find all events that happened at input time 0::
+        Find all events that happened at input time 0:
 
             matching = event_buffer.find(time=0)
 
-        Find the finish line event::
+        Find the finish line event:
 
             matching = event_buffer.find(event_name=structs.BINARY_RACE_FINISH_NAME, value=True)
 
