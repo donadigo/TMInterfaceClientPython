@@ -3,6 +3,7 @@ from tminterface.structs import BFEvaluationInfo, BFEvaluationResponse
 from tminterface.constants import DEFAULT_SERVER_SIZE
 import signal
 import time
+import sys
 
 
 class Client(object):
@@ -159,7 +160,8 @@ def run_client(client: Client, server_name: str = 'TMInterface0', buffer_size=DE
     def handler(signum, frame):
         iface.close()
 
-    signal.signal(signal.SIGBREAK, handler)
+    if sys.platform == 'win32':
+        signal.signal(signal.SIGBREAK, handler)
     signal.signal(signal.SIGINT, handler)
 
     iface.register(client)
