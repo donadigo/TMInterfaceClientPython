@@ -2,13 +2,13 @@ from distutils.core import setup
 setup(
     name = 'tminterface',
     packages = ['tminterface'],
-    version = '0.5',
+    version = '0.6',
     license='GPL3',
     description = 'A client for TMInterface, a TrackMania TAS tool',
     author = 'Adam Bieńkowski',
     author_email = 'donadigos159@gmail.com',
     url = 'https://github.com/donadigo/TMInterfaceClientPython',
-    download_url = 'https://github.com/donadigo/TMInterfaceClientPython/archive/refs/tags/0.1.tar.gz',
+    download_url = 'https://github.com/donadigo/TMInterfaceClientPython/archive/refs/tags/0.6.tar.gz',
     keywords = ['TMInterface', 'client', 'TrackMania'],
     install_requires=[
         'numpy',
