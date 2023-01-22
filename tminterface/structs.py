@@ -1,6 +1,6 @@
 import struct
 from enum import IntEnum
-from tminterface.constants import MODE_RUN, SIM_HAS_TIMERS, SIM_HAS_DYNA, SIM_HAS_PLAYER_INFO
+from tminterface.constants import MODE_RUN, SIM_HAS_TIMERS, SIM_HAS_DYNA, SIM_HAS_PLAYER_INFO, SIMULATION_WHEELS_SIZE
 from tminterface.eventbuffer import Event
 from tminterface.util import mat3_to_quat, quat_to_ypw
 import numpy as np
@@ -88,21 +88,6 @@ class SimStateData(object):
         
         return self.__get_vec3(self.dyna, 500)
 
-    @property
-    def velocity(self) -> list:
-        if (self.flags & SIM_HAS_DYNA) == 0:
-            return [0, 0, 0]
-
-        return self.__get_vec3(self.dyna, 512)
-
-    # Available only in run context
-    @property
-    def display_speed(self) -> int:
-        if (self.flags & SIM_HAS_PLAYER_INFO) == 0:
-            return 0
-
-        return self.__get_int(self.player_info, 832)
-
     @position.setter
     def position(self, pos: list) -> bool:
         if (self.flags & SIM_HAS_DYNA) == 0:
@@ -111,6 +96,13 @@ class SimStateData(object):
         self.__set_vec3(self.dyna, 500, pos)
         return True
 
+    @property
+    def velocity(self) -> list:
+        if (self.flags & SIM_HAS_DYNA) == 0:
+            return [0, 0, 0]
+
+        return self.__get_vec3(self.dyna, 512)
+
     @velocity.setter
     def velocity(self, vel: list) -> bool:
         if (self.flags & SIM_HAS_DYNA) == 0:
@@ -118,6 +110,29 @@ class SimStateData(object):
 
         self.__set_vec3(self.dyna, 512, vel)
         return True
+
+    @property
+    def angular_velocity(self) -> list:
+        if (self.flags & SIM_HAS_DYNA) == 0:
+            return [0, 0, 0]
+
+        return self.__get_vec3(self.dyna, 536)
+
+    @angular_velocity.setter
+    def angular_velocity(self, vel: list) -> bool:
+        if (self.flags & SIM_HAS_DYNA) == 0:
+            return False
+
+        self.__set_vec3(self.dyna, 536, vel)
+        return True
+
+    # Available only in run context
+    @property
+    def display_speed(self) -> int:
+        if (self.flags & SIM_HAS_PLAYER_INFO) == 0:
+            return 0
+
+        return self.__get_int(self.player_info, 832)
 
     @property
     def rotation_matrix(self) -> list:
@@ -157,6 +172,29 @@ class SimStateData(object):
     @property
     def rewind_time(self) -> int:
         return self.race_time + 10
+
+    @property
+    def wheels_on_ground(self):
+        onground = []
+        
+        for i in range(4):
+            current_offset = (SIMULATION_WHEELS_SIZE // 4) * i
+            hasgroundcontact = self.__get_int(self.simulation_wheels, 292 + current_offset)
+            onground.append(hasgroundcontact)
+
+        return onground
+
+    @property
+    def colliding(self):
+        return self.__get_int(self.scene_mobil, 1496) or self.__get_int(self.scene_mobil, 1500)
+
+    @property
+    def free_wheeling(self):
+        return self.__get_int(self.scene_mobil, 1548)
+
+    @property
+    def sliding(self):
+        return self.__get_int(self.scene_mobil, 1576)
 
     @property
     def input_accelerate(self) -> bool:
