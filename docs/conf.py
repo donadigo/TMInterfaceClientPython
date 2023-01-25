@@ -19,7 +19,7 @@ sys.path.insert(0, os.path.abspath('../'))
 # -- Project information -----------------------------------------------------
 
 project = 'TMInterface Client for Python'
-copyright = '2022, Adam Bieńkowski'
+copyright = '2023, Adam Bieńkowski'
 author = 'Adam Bieńkowski'
 
 # The full version, including alpha/beta/rc tags

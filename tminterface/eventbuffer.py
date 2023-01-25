@@ -2,7 +2,7 @@ import tminterface.util as util
 from tminterface.constants import ANALOG_ACCELERATE_NAME, ANALOG_STEER_NAME, BINARY_ACCELERATE_NAME, BINARY_BRAKE_NAME, BINARY_HORN_NAME, BINARY_LEFT_NAME, BINARY_RACE_FINISH_NAME, BINARY_RACE_START_NAME, BINARY_RESPAWN_NAME, BINARY_RIGHT_NAME
 from typing import Union
 from math import ceil
-from bytefield import *
+from bytefield import ByteStruct, IntegerField
 
 
 class Event(ByteStruct):
@@ -35,8 +35,8 @@ class Event(ByteStruct):
         time (int): the stored time of the event
         data (int): the final data that is written into game's memory
     """
-    time = IntegerField(offset=0)
-    input_data = IntegerField()
+    time        = IntegerField(offset=0)
+    input_data  = IntegerField()
 
     def __init__(self, *args, **kwargs) -> None:
         if len(args) == 1 and isinstance(args[0], int):

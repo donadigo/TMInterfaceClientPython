@@ -1,11 +1,55 @@
-from bytefield import *
+from bytefield import (
+    ByteStruct,
+    FloatField,
+    IntegerField,
+    ArrayField,
+    BooleanField,
+    ByteArrayField,
+    StructField,
+    StringField
+)
 from enum import IntEnum
 from tminterface.constants import  SIM_HAS_TIMERS, SIM_HAS_DYNA, SIM_HAS_PLAYER_INFO
 from tminterface.eventbuffer import Event
 import tminterface.util as util
+import numpy as np
 
 
 class PlayerInfoStruct(ByteStruct):
+    """
+    Attributes:
+        team: int
+        prev_race_time: int
+        race_time: int
+        race_time : int
+        race_best_time : int
+        lap_start_time : int
+        lap_time : int
+        lap_best_time : int
+        min_respawns : int
+        nb_completed : int
+        max_completed : int
+        stunts_score : int
+        best_stunts_score : int
+        cur_checkpoint : int
+        average_rank : float
+        current_race_rank : int
+        current_round_rank : int
+        current_time : int
+        race_state : int
+        ready_enum : int
+        round_num : int
+        offset_current_cp : float
+        cur_lap_cp_count : int
+        cur_cp_count : int
+        cur_lap : int
+        race_finished : bool
+        display_speed : int
+        finish_not_passed : bool
+        countdown_time : int
+        rest : bytearray
+    """
+
     team                = IntegerField(offset=576, signed=False)
     prev_race_time      = IntegerField(offset=680)
     race_start_time     = IntegerField(signed=False)
@@ -39,6 +83,22 @@ class PlayerInfoStruct(ByteStruct):
 
 
 class HmsDynaStateStruct(ByteStruct):
+    """
+    Attributes:
+        quat: np.ndarray
+        rotation: np.ndarray
+        position: np.ndarray
+        linear_speed: np.ndarray
+        add_linear_speed: np.ndarray
+        angular_speed: np.ndarray
+        force: np.ndarray
+        torque: np.ndarray
+        inverse_intertia_tensor: np.ndarray
+        unknown: float
+        not_tweaked_linear_speed: np.ndarray
+        owner: int
+    """
+
     quat                        = ArrayField(offset=0, shape=(4,), elem_field_type=FloatField)
     rotation                    = ArrayField(shape=(3, 3), elem_field_type=FloatField)
     position                    = ArrayField(shape=(3,), elem_field_type=FloatField)
@@ -54,6 +114,14 @@ class HmsDynaStateStruct(ByteStruct):
 
 
 class HmsDynaStruct(ByteStruct):
+    """
+    Attributes:
+        previous_state: HmsDynaStateStruct
+        current_state: HmsDynaStateStruct
+        prev_state: HmsDynaStateStruct
+        rest: bytearray
+    """
+
     previous_state  = StructField(offset=268, struct_type=HmsDynaStateStruct)
     current_state   = StructField(struct_type=HmsDynaStateStruct)
     prev_state      = StructField(struct_type=HmsDynaStateStruct)
@@ -61,12 +129,37 @@ class HmsDynaStruct(ByteStruct):
 
 
 class SurfaceHandler(ByteStruct):
+    """
+    Attributes:
+        unknown: np.ndarray
+        rotation: np.ndarray
+        position: np.ndarray
+    """
+
     unknown     = ArrayField(offset=4, shape=(4, 3), elem_field_type=FloatField)
     rotation    = ArrayField(shape=(3, 3), elem_field_type=FloatField)
     position    = ArrayField(shape=3, elem_field_type=FloatField)
 
 
 class RealTimeState(ByteStruct):
+    """
+    Attributes:
+        damper_absorb: float
+        field_4: float
+        field_8: float
+        field_12: np.ndarray
+        field_48: np.ndarray
+        field_84: np.ndarray
+        field_108: float
+        has_ground_contact: bool
+        contact_material_id: int
+        is_sliding: bool
+        relative_rotz_axis: np.ndarray
+        nb_ground_contacts: int
+        field_144: np.ndarray
+        rest: bytearray
+    """
+
     damper_absorb       = FloatField(offset=0)
     field_4             = FloatField()
     field_8             = FloatField()
@@ -84,10 +177,33 @@ class RealTimeState(ByteStruct):
 
 
 class WheelState(ByteStruct):
+    """
+    Attributes:
+        rest: bytearray
+    """
+
     rest = ByteArrayField(100, offset=0)
 
 
 class SimulationWheel(ByteStruct):
+    """
+    Attributes:
+        steerable: bool
+        field_8: int
+        surface_handler: SurfaceHandler
+        field_112: np.ndarray
+        field_160: int
+        field_164: int
+        offset_from_vehicle: np.ndarray
+        real_time_state: RealTimeState
+        field_348: int
+        contact_relative_local_distance: np.ndarray
+        prev_sync_wheel_state: WheelState
+        sync_wheel_state: WheelState
+        field_564: WheelState
+        async_wheel_state: WheelState
+    """
+
     steerable                       = BooleanField(offset=4)
     field_8                         = IntegerField()
     surface_handler                 = StructField(SurfaceHandler)
@@ -105,6 +221,12 @@ class SimulationWheel(ByteStruct):
 
 
 class CheckpointTime(ByteStruct):
+    """
+    Attributes:
+        time: int
+        stunts_score: int
+    """
+
     time            = IntegerField(offset=0)
     stunts_score    = IntegerField()
 
@@ -153,11 +275,30 @@ class CheckpointData(ByteStruct):
 
 
 class CachedInput(ByteStruct):
+    """
+    Attributes:
+        time: int
+        event: Event
+    """
+
     time    = IntegerField(offset=0)
     event   = StructField(Event)
 
 
 class SceneVehicleCarState(ByteStruct):
+    """
+    Attributes:
+        speed_forward: float
+        speed_sideward: float
+        input_steer: float
+        input_gas: float
+        input_brake: float
+        is_turbo: bool
+        rpm: float
+        gearbox_state: int
+        rest: bytearray
+    """
+
     speed_forward   = FloatField(offset=0)
     speed_sideward  = FloatField()
     input_steer     = FloatField()
@@ -170,6 +311,17 @@ class SceneVehicleCarState(ByteStruct):
 
 
 class Engine(ByteStruct):
+    """
+    Attributes:
+        max_rpm: float
+        braking_factor: float
+        clamped_rpm: float
+        actual_rpm: float
+        slide_factor: float
+        rear_gear: int
+        gear: int
+    """
+
     max_rpm         = FloatField(offset=0)
     braking_factor  = FloatField(offset=20)
     clamped_rpm     = FloatField()
@@ -180,6 +332,42 @@ class Engine(ByteStruct):
 
 
 class SceneVehicleCar(ByteStruct):
+    """
+    Attributes:
+        is_update_async: bool
+        input_gas: float
+        input_brake: float
+        input_steer: float
+        is_light_trials_set: bool
+        horn_limit: int
+        quality: int
+        max_linear_speed: float
+        gearbox_state: int
+        block_flags: int
+        prev_sync_vehicle_state: SceneVehicleCarState
+        sync_vehicle_state: SceneVehicleCarState
+        async_vehicle_state: SceneVehicleCarState
+        prev_async_vehicle_state: SceneVehicleCarState
+        engine: Engine
+        has_any_lateral_contact: bool
+        last_has_any_lateral_contact_time: int
+        water_forces_applied: bool
+        turning_rate: float
+        turbo_boost_factor: float
+        last_turbo_type_change_time: int
+        last_turbo_time: int
+        turbo_type: int
+        roulette_value: int
+        is_freewheeling: bool
+        is_sliding: bool
+        wheel_contact_absorb_counter: int
+        burnout_state: int
+        current_local_speed: np.ndarray
+        total_central_force_added: np.ndarray
+        is_rubber_ball: bool
+        saved_state: np.ndarray
+    """
+
     is_update_async                     = BooleanField(offset=76)
     input_gas                           = FloatField()
     input_brake                         = FloatField()
@@ -234,6 +422,27 @@ class SimStateData(ByteStruct):
 
     To query input state of the simulation state regardless of context,
     use input_* (input_accelerate, input_brake etc.) accessors.
+
+    Attributes:
+        version: int
+        context_mode: int
+        flags: int
+        timers: np.ndarray
+        dyna: HmsDynaStruct
+        scene_mobil: SceneVehicleCar
+        simulation_wheels: np.ndarray
+        plug_solid: bytes
+        cmd_buffer_core: bytes
+        player_info: PlayerInfoStruct
+        internal_input_state: np.ndarray
+        input_running_event: Event
+        input_finish_event: Event
+        input_accelerate_event: Event
+        input_brake_event: Event
+        input_left_event: Event
+        input_right_event: Event
+        input_steer_event: Event
+        input_gas_event: Event
     """
     version                 = IntegerField(offset=0, signed=False)
     context_mode            = IntegerField(signed=False)
