@@ -23,7 +23,7 @@ copyright = '2022, Adam Bieńkowski'
 author = 'Adam Bieńkowski'
 
 # The full version, including alpha/beta/rc tags
-release = '0.4'
+release = '1.0.0'
 
 
 # -- General configuration ---------------------------------------------------
@@ -54,4 +54,4 @@ html_theme = 'sphinx_rtd_theme'
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = []
 
-autodoc_mock_imports = ['numpy']
+autodoc_mock_imports = ['bytefield']
