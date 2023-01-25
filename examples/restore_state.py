@@ -18,7 +18,7 @@ class MainClient(Client):
         if _time == 500:
             self.state = iface.get_simulation_state()
 
-        if _time == 5000:
+        if _time == 5000 and self.state:
             iface.rewind_to_state(self.state)
 
 

@@ -5,7 +5,7 @@ import mmap
 from typing import Tuple
 
 from tminterface.client import Client
-from tminterface.structs import BFEvaluationResponse, BFEvaluationInfo, BFPhase, BFTarget, CheckpointData, SimStateData
+from tminterface.structs import BFEvaluationResponse, BFEvaluationInfo, ClassicString, CheckpointData, SimStateData
 from tminterface.eventbuffer import EventBufferData, Event
 from tminterface.constants import *
 from enum import IntEnum, auto
@@ -78,10 +78,6 @@ class Message(object):
         self._type = _type
         self.error_code = error_code
         self.data = bytearray()
-
-    def write_event(self, event: Event):
-        self.write_uint32(event.time)
-        self.write_int32(event.data)
 
     def write_uint8(self, n):
         self.data.extend(struct.pack('B', n))
@@ -413,9 +409,11 @@ class TMInterface(object):
         Args:
             command (str): the command to execute
         """
+        command_str = ClassicString(command)
+
         msg = Message(MessageType.C_EXECUTE_COMMAND)
         msg.write_int32(0)
-        self._write_vector(msg, [ord(c) for c in command], 1)
+        msg.write_buffer(command_str.data)
         self._send_message(msg)
         self._wait_for_server_response()
 
@@ -478,33 +476,11 @@ class TMInterface(object):
             state (SimStateData): the state to restore, obtained through get_simulation_state
         """
         msg = Message(MessageType.C_SIM_REWIND_TO_STATE)
-        msg.write_int32(state.version)
-        msg.write_int32(state.context_mode)
-        msg.write_int32(state.flags)
-        msg.write_buffer(state.timers)
-        msg.write_buffer(state.dyna)
-        msg.write_buffer(state.scene_mobil)
-        msg.write_buffer(state.simulation_wheels)
-        msg.write_buffer(state.plug_solid)
-        msg.write_buffer(state.cmd_buffer_core)
-        msg.write_buffer(state.player_info)
-        msg.write_buffer(state.internal_input_state)
-
-        msg.write_event(state.input_running_event)
-        msg.write_event(state.input_finish_event)
-        msg.write_event(state.input_accelerate_event)
-        msg.write_event(state.input_brake_event)
-        msg.write_event(state.input_left_event)
-        msg.write_event(state.input_right_event)
-        msg.write_event(state.input_steer_event)
-        msg.write_event(state.input_gas_event)
-        msg.write_uint32(state.num_respawns)
-
-        self.__write_checkpoint_state(msg, state.cp_data)
+        msg.write_buffer(state.data)
         self._send_message(msg)
 
         # Send client the number of CPs of the state rewinded to
-        cp_count = len([time for (time, _) in state.cp_data.cp_times if time != -1])
+        cp_count = len([cp_time.time for cp_time in state.cp_data.cp_times if cp_time.time != -1])
         cp_target = len(state.cp_data.cp_times)
         self.client.on_checkpoint_count_changed(self, cp_count, cp_target)
         
@@ -524,7 +500,7 @@ class TMInterface(object):
             data (CheckpointData): the checkpoint data
         """
         msg = Message(MessageType.C_SET_CHECKPOINT_STATE)
-        self.__write_checkpoint_state(msg, data)
+        msg.write_buffer(data.data)
         self._send_message(msg)
         self._wait_for_server_response()
 
@@ -546,9 +522,10 @@ class TMInterface(object):
             msg.write_int32(-1)
 
         msg.write_int32(data.events_duration)
-        events_tup = [(event.time, event.data) for event in data.events]
+        msg.write_uint32(len(data.events))
+        for event in data.events:
+            msg.write_buffer(event.data)
 
-        self._write_vector(msg, events_tup, [4, 4])
         self._send_message(msg)
         self._wait_for_server_response()
 
@@ -590,7 +567,7 @@ class TMInterface(object):
         if error_code == NO_PLAYER_INFO:
             raise ServerException('Failed to get checkpoint state: no player info available')
 
-        data = self._read_checkpoint_state()
+        data = CheckpointData(self.mfile.read(CheckpointData.min_size))
 
         self._clear_buffer()
         return data
@@ -612,33 +589,11 @@ class TMInterface(object):
         self.mfile.seek(4)
         error_code = self._read_int32()
 
-        state = SimStateData()
-        state.version = self._read_int32()
-        state.context_mode = self._read_int32()
-        state.flags = self._read_uint32()
-        state.timers = bytearray(self.mfile.read(TIMERS_SIZE))
-        state.dyna = bytearray(self.mfile.read(DYNA_SIZE))
-        state.scene_mobil = bytearray(self.mfile.read(SCENE_MOBIL_SIZE))
-        state.simulation_wheels = bytearray(self.mfile.read(SIMULATION_WHEELS_SIZE))
-        state.plug_solid = bytearray(self.mfile.read(PLUG_SOLID_SIZE))
-        state.cmd_buffer_core = bytearray(self.mfile.read(CMD_BUFFER_CORE_SIZE))
-        state.player_info = bytearray(self.mfile.read(PLAYER_INFO_SIZE))
-        state.internal_input_state = bytearray(self.mfile.read(INPUT_STATE_SIZE))
-
-        state.input_running_event = self._read_event()
-        state.input_finish_event = self._read_event()
-        state.input_accelerate_event = self._read_event()
-        state.input_brake_event = self._read_event()
-        state.input_left_event = self._read_event()
-        state.input_right_event = self._read_event()
-        state.input_steer_event = self._read_event()
-        state.input_gas_event = self._read_event()
-        state.num_respawns = self._read_uint32()
+        state = SimStateData(self.mfile.read(SimStateData.min_size))
+        state.cp_data.read_from_file(self.mfile)
 
         if error_code == NO_PLAYER_INFO:
             raise ServerException('Failed to get checkpoint state: no player info available')
-
-        state.cp_data = self._read_checkpoint_state()
 
         self._clear_buffer()
         return state
@@ -707,9 +662,9 @@ class TMInterface(object):
 
         data = EventBufferData(self._read_uint32())
         data.control_names = names
-        event_data = self.__read_vector([4, 4])
-        for item in event_data:
-            ev = Event(item[0], item[1])
+        events = self._read_uint32()
+        for _ in range(events):
+            ev = Event(self.mfile.read(Event.min_size))
             data.events.append(ev)
 
         self._clear_buffer()
@@ -776,9 +731,11 @@ class TMInterface(object):
         Args:
             command (str): the command to register, the command cannot contain spaces
         """
+        str = ClassicString(command)
+
         msg = Message(MessageType.C_REGISTER_CUSTOM_COMMAND)
         msg.write_int32(0)
-        self._write_vector(msg, [ord(c) for c in command], 1)
+        msg.write_buffer(str.data)
         self._send_message(msg)
         self._wait_for_server_response(False)
 
@@ -814,18 +771,7 @@ class TMInterface(object):
         self._wait_for_server_response()
 
     def _on_bruteforce_validate_call(self, msgtype: MessageType):
-        info = BFEvaluationInfo()
-        info.phase = BFPhase(self._read_int32())
-        info.target = BFTarget(self._read_int32())
-        info.time = self._read_int32()
-        info.modified_inputs_num = self._read_int32()
-        info.inputs_min_time = self._read_int32()
-        info.inputs_max_time = self._read_int32()
-        info.max_steer_diff = self._read_int32()
-        info.max_time_diff = self._read_int32()
-        info.override_stop_time = self._read_int32()
-        info.search_forever = bool(self._read_int32())
-        info.inputs_extend_steer = bool(self._read_int32())
+        info = BFEvaluationInfo(self.mfile.read(BFEvaluationInfo.min_size))
 
         resp = self.client.on_bruteforce_evaluate(self, info)
         if not resp:
@@ -833,27 +779,8 @@ class TMInterface(object):
 
         msg = Message(MessageType.C_PROCESSED_CALL)
         msg.write_int32(msgtype)
-        msg.write_int32(resp.decision)
-        msg.write_int32(resp.rewind_time)
+        msg.write_buffer(resp.data)
         self._send_message(msg)
-
-    def __write_checkpoint_state(self, msg: Message, data: CheckpointData):
-        msg.write_int32(0)  # reserved
-        if self._write_vector(msg, data.cp_states, 4):
-            self._write_vector(msg, data.cp_times, [4, 4])
-
-    def _read_checkpoint_state(self):
-        self._read_int32()  # reserved
-        cp_states = self.__read_vector(4)
-        cp_times = self.__read_vector([4, 4])
-
-        data = CheckpointData(cp_states, cp_times)
-        return data
-
-    def _read_event(self):
-        time = self._read_uint32()
-        data = self._read_int32()
-        return Event(time, data)
 
     def _write_vector(self, msg: Message, vector: list, field_sizes):
         is_list = isinstance(field_sizes, list)

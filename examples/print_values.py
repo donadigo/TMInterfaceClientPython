@@ -1,5 +1,6 @@
 from tminterface.interface import TMInterface
 from tminterface.client import Client, run_client
+from tminterface.structs import CheckpointData
 import sys
 
 class MainClient(Client):

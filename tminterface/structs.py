@@ -1,12 +1,115 @@
-import struct
+from bytefield import *
 from enum import IntEnum
-from tminterface.constants import MODE_RUN, SIM_HAS_TIMERS, SIM_HAS_DYNA, SIM_HAS_PLAYER_INFO
+from tminterface.constants import  SIM_HAS_TIMERS, SIM_HAS_DYNA, SIM_HAS_PLAYER_INFO
 from tminterface.eventbuffer import Event
-from tminterface.util import mat3_to_quat, quat_to_ypw
-import numpy as np
+import tminterface.util as util
 
 
-class CheckpointData(object):
+class PlayerInfoStruct(ByteStruct):
+    team                = IntegerField(offset=576, signed=False)
+    prev_race_time      = IntegerField(offset=680)
+    race_start_time     = IntegerField(signed=False)
+    race_time           = IntegerField(signed=True)
+    race_best_time      = IntegerField(signed=False)
+    lap_start_time      = IntegerField(signed=False)
+    lap_time            = IntegerField(signed=False)
+    lap_best_time       = IntegerField()
+    min_respawns        = IntegerField(signed=False)
+    nb_completed        = IntegerField(signed=False)
+    max_completed       = IntegerField(signed=False)
+    stunts_score        = IntegerField(signed=False)
+    best_stunts_score   = IntegerField(signed=False)
+    cur_checkpoint      = IntegerField(signed=False)
+    average_rank        = FloatField()
+    current_race_rank   = IntegerField(signed=False)
+    current_round_rank  = IntegerField(signed=False)
+    current_time        = IntegerField(offset=776, signed=False)
+    race_state          = IntegerField(offset=788, signed=False)
+    ready_enum          = IntegerField(signed=False)
+    round_num           = IntegerField(signed=False)
+    offset_current_cp   = FloatField()
+    cur_lap_cp_count    = IntegerField(offset=816, signed=False)
+    cur_cp_count        = IntegerField(signed=False)
+    cur_lap             = IntegerField(signed=False)
+    race_finished       = BooleanField()
+    display_speed       = IntegerField()
+    finish_not_passed   = BooleanField()
+    countdown_time      = IntegerField(offset=916)
+    rest                = ByteArrayField(32)
+
+
+class HmsDynaStateStruct(ByteStruct):
+    quat                        = ArrayField(offset=0, shape=(4,), elem_field_type=FloatField)
+    rotation                    = ArrayField(shape=(3, 3), elem_field_type=FloatField)
+    position                    = ArrayField(shape=(3,), elem_field_type=FloatField)
+    linear_speed                = ArrayField(shape=(3,), elem_field_type=FloatField)
+    add_linear_speed            = ArrayField(shape=(3,), elem_field_type=FloatField)
+    angular_speed               = ArrayField(shape=(3,), elem_field_type=FloatField)
+    force                       = ArrayField(shape=(3,), elem_field_type=FloatField)
+    torque                      = ArrayField(shape=(3,), elem_field_type=FloatField)
+    inverse_intertia_tensor     = ArrayField(shape=(3, 3), elem_field_type=FloatField)
+    unknown                     = FloatField()
+    not_tweaked_linear_speed    = ArrayField(shape=(3,), elem_field_type=FloatField)
+    owner                       = IntegerField()
+
+
+class HmsDynaStruct(ByteStruct):
+    previous_state  = StructField(offset=268, struct_type=HmsDynaStateStruct)
+    current_state   = StructField(struct_type=HmsDynaStateStruct)
+    prev_state      = StructField(struct_type=HmsDynaStateStruct)
+    rest            = ByteArrayField(616)
+
+
+class SurfaceHandler(ByteStruct):
+    unknown     = ArrayField(offset=4, shape=(4, 3), elem_field_type=FloatField)
+    rotation    = ArrayField(shape=(3, 3), elem_field_type=FloatField)
+    position    = ArrayField(shape=3, elem_field_type=FloatField)
+
+
+class RealTimeState(ByteStruct):
+    damper_absorb       = FloatField(offset=0)
+    field_4             = FloatField()
+    field_8             = FloatField()
+    field_12            = ArrayField(shape=(3, 3), elem_field_type=FloatField)
+    field_48            = ArrayField(shape=(3, 3), elem_field_type=FloatField)
+    field_84            = ArrayField(shape=3, elem_field_type=FloatField)
+    field_108           = FloatField(offset=108)
+    has_ground_contact  = BooleanField()
+    contact_material_id = IntegerField()
+    is_sliding          = BooleanField()
+    relative_rotz_axis  = ArrayField(shape=3, elem_field_type=FloatField)
+    nb_ground_contacts  = IntegerField(offset=140)
+    field_144           = ArrayField(shape=3, elem_field_type=FloatField)
+    rest                = ByteArrayField(12)
+
+
+class WheelState(ByteStruct):
+    rest = ByteArrayField(100, offset=0)
+
+
+class SimulationWheel(ByteStruct):
+    steerable                       = BooleanField(offset=4)
+    field_8                         = IntegerField()
+    surface_handler                 = StructField(SurfaceHandler)
+    field_112                       = ArrayField(shape=(4, 3), elem_field_type=FloatField)
+    field_160                       = IntegerField()
+    field_164                       = IntegerField()
+    offset_from_vehicle             = ArrayField(shape=3, elem_field_type=FloatField)
+    real_time_state                 = StructField(RealTimeState)
+    field_348                       = IntegerField()
+    contact_relative_local_distance = ArrayField(shape=3, elem_field_type=FloatField)
+    prev_sync_wheel_state           = StructField(WheelState)
+    sync_wheel_state                = StructField(WheelState)
+    field_564                       = StructField(WheelState)
+    async_wheel_state               = StructField(WheelState)
+
+
+class CheckpointTime(ByteStruct):
+    time            = IntegerField(offset=0)
+    stunts_score    = IntegerField()
+
+
+class CheckpointData(ByteStruct):
     """
     The CheckpointData object represents checkpoint state within the game.
 
@@ -25,12 +128,93 @@ class CheckpointData(object):
         cp_states (list): the checkpoint states array
         cp_times (list): the checkpoint times array, each element is a two element tuple of (time, flags)
     """
-    def __init__(self, cp_states: list, cp_times: list):
-        self.cp_states = cp_states
-        self.cp_times = cp_times
+    reserved            = IntegerField(offset=0)
+    cp_states_length    = IntegerField()
+    cp_states           = ArrayField(shape=None, elem_field_type=BooleanField)
+    cp_times_length     = IntegerField()
+    cp_times            = ArrayField(shape=None, elem_field_type=CheckpointTime)
+
+    def __init__(self, *args, **kwargs):
+        if len(args) == 2 and isinstance(args[0], list) and isinstance(args[1], list):
+            super().__init__(**kwargs)
+            self.cp_states = args[0]
+            self.cp_states_length = len(args[0])
+            self.cp_times = args[1]
+            self.cp_times_length = len(args[1])
+        else:
+            super().__init__(*args, **kwargs)
+
+    def read_from_file(self, file):
+        self.data += file.read(self.cp_states_length * 4)
+        self.resize(CheckpointData.cp_states_field, self.cp_states_length)
+
+        self.data += file.read(self.cp_times_length * CheckpointTime.min_size)
+        self.resize(CheckpointData.cp_times_field, self.cp_times_length)
 
 
-class SimStateData(object):
+class CachedInput(ByteStruct):
+    time    = IntegerField(offset=0)
+    event   = StructField(Event)
+
+
+class SceneVehicleCarState(ByteStruct):
+    speed_forward   = FloatField(offset=0)
+    speed_sideward  = FloatField()
+    input_steer     = FloatField()
+    input_gas       = FloatField()
+    input_brake     = FloatField()
+    is_turbo        = BooleanField()
+    rpm             = FloatField(offset=128)
+    gearbox_state   = IntegerField(offset=136)
+    rest            = ByteArrayField(28)
+
+
+class Engine(ByteStruct):
+    max_rpm         = FloatField(offset=0)
+    braking_factor  = FloatField(offset=20)
+    clamped_rpm     = FloatField()
+    actual_rpm      = FloatField()
+    slide_factor    = FloatField()
+    rear_gear       = IntegerField(offset=40)
+    gear            = IntegerField()
+
+
+class SceneVehicleCar(ByteStruct):
+    is_update_async                     = BooleanField(offset=76)
+    input_gas                           = FloatField()
+    input_brake                         = FloatField()
+    input_steer                         = FloatField()
+    is_light_trials_set                 = BooleanField(offset=116)
+    horn_limit                          = IntegerField(offset=148)
+    quality                             = IntegerField(offset=164)
+    max_linear_speed                    = FloatField(offset=736)
+    gearbox_state                       = IntegerField()
+    block_flags                         = IntegerField()
+    prev_sync_vehicle_state             = StructField(SceneVehicleCarState)
+    sync_vehicle_state                  = StructField(SceneVehicleCarState)
+    async_vehicle_state                 = StructField(SceneVehicleCarState)
+    prev_async_vehicle_state            = StructField(SceneVehicleCarState)
+    engine                              = StructField(Engine, offset=1436)
+    has_any_lateral_contact             = BooleanField(offset=1500)
+    last_has_any_lateral_contact_time   = IntegerField()
+    water_forces_applied                = BooleanField()
+    turning_rate                        = FloatField()
+    turbo_boost_factor                  = FloatField(offset=1524)
+    last_turbo_type_change_time         = IntegerField()
+    last_turbo_time                     = IntegerField()
+    turbo_type                          = IntegerField()
+    roulette_value                      = FloatField(offset=1544)
+    is_freewheeling                     = BooleanField()
+    is_sliding                          = BooleanField(offset=1576)
+    wheel_contact_absorb_counter        = IntegerField(offset=1660)
+    burnout_state                       = IntegerField(offset=1692)
+    current_local_speed                 = ArrayField(offset=1804, shape=3, elem_field_type=FloatField)
+    total_central_force_added           = ArrayField(offset=2072, shape=3, elem_field_type=FloatField)
+    is_rubber_ball                      = BooleanField(offset=2116)
+    saved_state                         = ArrayField(shape=(4, 3), elem_field_type=FloatField)
+
+
+class SimStateData(ByteStruct):
     """
     The SimStateData object represents a full save state of the simulation state,
     including checkpoint and input information.
@@ -51,49 +235,51 @@ class SimStateData(object):
     To query input state of the simulation state regardless of context,
     use input_* (input_accelerate, input_brake etc.) accessors.
     """
-    def __init__(self):
-        self.version = 0
-        self.context_mode = MODE_RUN
-        self.flags = 0
-        self.timers = bytearray()
-        self.dyna = bytearray()
-        self.scene_mobil = bytearray()
-        self.simulation_wheels = bytearray()
-        self.plug_solid = bytearray()
-        self.cmd_buffer_core = bytearray()
-        self.player_info = bytearray()
-        self.internal_input_state = bytearray()
-        self.input_running_event = Event(0)
-        self.input_finish_event = Event(0)
-        self.input_accelerate_event = Event(0)
-        self.input_brake_event  = Event(0)
-        self.input_left_event = Event(0)
-        self.input_right_event = Event(0)
-        self.input_steer_event = Event(0)
-        self.input_gas_event = Event(0)
-        self.num_respawns = 0
-        self.cp_data = None
+    version                 = IntegerField(offset=0, signed=False)
+    context_mode            = IntegerField(signed=False)
+    flags                   = IntegerField(signed=False)
+    timers                  = ArrayField(shape=53, elem_field_type=IntegerField)
+    dyna                    = StructField(HmsDynaStruct)
+    scene_mobil             = StructField(SceneVehicleCar)
+    simulation_wheels       = ArrayField(shape=4, elem_field_type=SimulationWheel)
+    plug_solid              = ByteArrayField(68)
+    cmd_buffer_core         = ByteArrayField(264)
+    player_info             = StructField(PlayerInfoStruct)
+    internal_input_state    = ArrayField(shape=10, elem_field_type=CachedInput)
+
+    input_running_event     = StructField(Event)
+    input_finish_event      = StructField(Event)
+    input_accelerate_event  = StructField(Event)
+    input_brake_event       = StructField(Event)
+    input_left_event        = StructField(Event)
+    input_right_event       = StructField(Event)
+    input_steer_event       = StructField(Event)
+    input_gas_event         = StructField(Event)
+
+    num_respawns            = IntegerField(signed=False)
+
+    cp_data                 = StructField(CheckpointData)
 
     @property
     def time(self) -> int:
         if (self.flags & SIM_HAS_TIMERS) == 0:
             return 0
 
-        return self.__get_int(self.timers, 4)
+        return self.timers[1]
 
     @property
     def position(self) -> list:
         if (self.flags & SIM_HAS_DYNA) == 0:
             return [0, 0, 0]
         
-        return self.__get_vec3(self.dyna, 500)
+        return list(self.dyna.current_state.position)
 
     @property
     def velocity(self) -> list:
         if (self.flags & SIM_HAS_DYNA) == 0:
             return [0, 0, 0]
 
-        return self.__get_vec3(self.dyna, 512)
+        return list(self.dyna.current_state.linear_speed)
 
     # Available only in run context
     @property
@@ -101,14 +287,14 @@ class SimStateData(object):
         if (self.flags & SIM_HAS_PLAYER_INFO) == 0:
             return 0
 
-        return self.__get_int(self.player_info, 832)
+        return self.player_info.display_speed
 
     @position.setter
     def position(self, pos: list) -> bool:
         if (self.flags & SIM_HAS_DYNA) == 0:
             return False
 
-        self.__set_vec3(self.dyna, 500, pos)
+        self.dyna.current_state.position = pos
         return True
 
     @velocity.setter
@@ -116,7 +302,7 @@ class SimStateData(object):
         if (self.flags & SIM_HAS_DYNA) == 0:
             return False
 
-        self.__set_vec3(self.dyna, 512, vel)
+        self.dyna.current_state.linear_speed = pos
         return True
 
     @property
@@ -124,35 +310,29 @@ class SimStateData(object):
         if (self.flags & SIM_HAS_DYNA) == 0:
             return [[0, 0, 0]] * 3
 
-        m1 = self.__get_vec3(self.dyna, 464)
-        m2 = self.__get_vec3(self.dyna, 476)
-        m3 = self.__get_vec3(self.dyna, 488)
-
-        return [m1, m2, m3]
+        return self.dyna.current_state.rotation.to_numpy()
 
     @rotation_matrix.setter
     def rotation_matrix(self, matrix: list) -> bool:
         if (self.flags & SIM_HAS_DYNA) == 0:
             return False
 
-        self.__set_vec3(self.dyna, 464, matrix[0])
-        self.__set_vec3(self.dyna, 476, matrix[1])
-        self.__set_vec3(self.dyna, 488, matrix[2])
+        self.dyna.current_state.rotation = matrix
 
     @property
     def yaw_pitch_roll(self) -> np.array:
         if (self.flags & SIM_HAS_DYNA) == 0:
             return [0, 0, 0]
 
-        mat = np.array(self.rotation_matrix)
-        return list(quat_to_ypw(mat3_to_quat(mat)))
+        mat = self.rotation_matrix
+        return list(util.quat_to_ypw(util.mat3_to_quat(mat)))
 
     @property
     def race_time(self) -> int:
         if (self.flags & SIM_HAS_PLAYER_INFO) == 0:
             return False
 
-        return self.__get_int(self.player_info, 688)
+        return self.player_info.race_time
 
     @property
     def rewind_time(self) -> int:
@@ -182,22 +362,15 @@ class SimStateData(object):
     def input_gas(self) -> int:
         return self.input_gas_event.analog_value
 
-    @staticmethod
-    def __get_int(buffer: bytearray, offset: int) -> int:
-        return int.from_bytes(buffer[offset:offset+4], byteorder='little')
 
-    @staticmethod
-    def __get_vec3(buffer: bytearray, offset: int) -> list:
-        x = struct.unpack('f', buffer[offset:offset+4])[0]
-        y = struct.unpack('f', buffer[offset+4:offset+8])[0]
-        z = struct.unpack('f', buffer[offset+8:offset+12])[0]
-        return [x, y, z]
-
-    @staticmethod
-    def __set_vec3(buffer: bytearray, offset: int, v: list):
-        buffer[offset:offset+4] = list(struct.pack('f', v[0]))
-        buffer[offset+4:offset+8] = list(struct.pack('f', v[1]))
-        buffer[offset+8:offset+12] = list(struct.pack('f', v[2]))
+class BFTarget(IntEnum):
+    """
+    The bruteforce metric that is being currently optimized.
+    """
+    FINISH_TIME = 0
+    CHECKPOINT_TIME = 1
+    TRIGGER = 2
+    DISTANCE_SPEED = 3
 
 
 class BFPhase(IntEnum):
@@ -214,15 +387,6 @@ class BFPhase(IntEnum):
     """
     INITIAL = 0
     SEARCH = 1
-
-
-class BFTarget(IntEnum):
-    """
-    The bruteforce metric that is being currently optimized.
-    """
-    FINISH_TIME = 0
-    CHECKPOINT_TIME = 1
-    TRIGGER = 2
 
 
 class BFEvaluationDecision(IntEnum):
@@ -247,25 +411,39 @@ class BFEvaluationDecision(IntEnum):
     STOP = 4
 
 
-class BFEvaluationInfo(object):
+class BFEvaluationInfo(ByteStruct):
     """
     The bruteforce settings applied in the bruteforce process, including the current simulation race time.
     """
-    def __init__(self) -> None:
-        self.phase = BFPhase.INITIAL
-        self.target = BFTarget.FINISH_TIME
-        self.time = 0
-        self.modified_inputs_num = -1
-        self.inputs_min_time = -1
-        self.inputs_max_time = -1
-        self.max_steer_diff = -1
-        self.max_time_diff = -1
-        self.override_stop_time = -1
-        self.search_forever = False
-        self.inputs_extend_steer = False
+    phase               = IntegerField(signed=False)
+    target              = IntegerField(signed=False)
+    time                = IntegerField()
+    modified_inputs_num = IntegerField()
+    inputs_min_time     = IntegerField()
+    inputs_max_time     = IntegerField()
+    max_steer_diff      = IntegerField()
+    max_time_diff       = IntegerField()
+    override_stop_time  = IntegerField()
+    search_forever      = BooleanField()
+    inputs_extend_steer = BooleanField()
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        if not args:
+            self.phase = BFPhase.INITIAL
+            self.target = BFTarget.FINISH_TIME
+            self.time = 0
+            self.modified_inputs_num = -1
+            self.inputs_min_time = -1
+            self.inputs_max_time = -1
+            self.max_steer_diff = -1
+            self.max_time_diff = -1
+            self.override_stop_time = -1
+            self.search_forever = False
+            self.inputs_extend_steer = False
 
 
-class BFEvaluationResponse(object):
+class BFEvaluationResponse(ByteStruct):
     """
     The response object sent by :meth:`Client.on_bruteforce_evaluate`.
     
@@ -275,6 +453,23 @@ class BFEvaluationResponse(object):
     changed by your algorithm. Otherwise, TMInterface will automatically randomize the inputs according
     to the current settings itself.
     """
+    decision    = IntegerField(signed=False)
+    rewind_time = IntegerField()
+
     def __init__(self) -> None:
+        super().__init__()
         self.decision = BFEvaluationDecision.CONTINUE
         self.rewind_time = -1
+
+
+class ClassicString(ByteStruct):
+    """
+    A string sent by the client to TMInterface.
+    """
+    command_length  = IntegerField()
+    command         = StringField(None)
+
+    def __init__(self, command: str) -> None:
+        super().__init__()
+        self.command_length = len(command)
+        self.command = command

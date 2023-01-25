@@ -2,9 +2,10 @@ import tminterface.util as util
 from tminterface.constants import ANALOG_ACCELERATE_NAME, ANALOG_STEER_NAME, BINARY_ACCELERATE_NAME, BINARY_BRAKE_NAME, BINARY_HORN_NAME, BINARY_LEFT_NAME, BINARY_RACE_FINISH_NAME, BINARY_RACE_START_NAME, BINARY_RESPAWN_NAME, BINARY_RIGHT_NAME
 from typing import Union
 from math import ceil
+from bytefield import *
 
 
-class Event(object):
+class Event(ByteStruct):
     """
     The Event class represents a game event (or input) with its respective time.
 
@@ -34,34 +35,44 @@ class Event(object):
         time (int): the stored time of the event
         data (int): the final data that is written into game's memory
     """
-    def __init__(self, time: int, data: int = 0):
-        self.time = time
-        self.data = data
+    time = IntegerField(offset=0)
+    input_data = IntegerField()
+
+    def __init__(self, *args, **kwargs) -> None:
+        if len(args) == 1 and isinstance(args[0], int):
+            super().__init__(**kwargs)
+            self.time = args[0]
+        elif len(args) == 2 and isinstance(args[0], int) and isinstance(args[1], int):
+            super().__init__(**kwargs)
+            self.time = args[0]
+            self.input_data = args[1]
+        else:
+            super().__init__(*args, **kwargs)
 
     @property
     def name_index(self) -> int:
-        return self.data >> 24
+        return self.input_data >> 24
 
     @name_index.setter
     def name_index(self, index: int):
-        self.data &= 0xFFFFFF
-        self.data |= (index << 24)
+        self.input_data = self.input_data & 0xFFFFFF
+        self.input_data = self.input_data | (index << 24)
 
     @property
     def binary_value(self) -> bool:
-        return bool(self.data & 0xFFFFFF)
+        return bool(self.input_data & 0xFFFFFF)
 
     @binary_value.setter
     def binary_value(self, value: bool):
-        self.data = self.data & 0xFF000000 | int(value)
+        self.input_data = self.input_data & 0xFF000000 | int(value)
 
     @property
     def analog_value(self) -> int:
-        return util.data_to_analog_value(self.data & 0xFFFFFF)
+        return util.data_to_analog_value(self.input_data & 0xFFFFFF)
 
     @analog_value.setter
     def analog_value(self, value: int):
-        self.data = self.data & 0xFF000000 | (util.analog_value_to_data(value) & 0xFFFFFF)
+        self.input_data = self.input_data & 0xFF000000 | (util.analog_value_to_data(value) & 0xFFFFFF)
 
 
 class EventBufferData(object):
