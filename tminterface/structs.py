@@ -93,7 +93,7 @@ class HmsDynaStateStruct(ByteStruct):
         angular_speed: np.ndarray
         force: np.ndarray
         torque: np.ndarray
-        inverse_intertia_tensor: np.ndarray
+        inverse_inertia_tensor: np.ndarray
         unknown: float
         not_tweaked_linear_speed: np.ndarray
         owner: int
@@ -107,10 +107,18 @@ class HmsDynaStateStruct(ByteStruct):
     angular_speed               = ArrayField(shape=(3,), elem_field_type=FloatField)
     force                       = ArrayField(shape=(3,), elem_field_type=FloatField)
     torque                      = ArrayField(shape=(3,), elem_field_type=FloatField)
-    inverse_intertia_tensor     = ArrayField(shape=(3, 3), elem_field_type=FloatField)
+    inverse_inertia_tensor      = ArrayField(shape=(3, 3), elem_field_type=FloatField)
     unknown                     = FloatField()
     not_tweaked_linear_speed    = ArrayField(shape=(3,), elem_field_type=FloatField)
     owner                       = IntegerField()
+
+    @property
+    def inverse_intertia_tensor(self):
+        return self.inverse_inertia_tensor
+
+    @inverse_intertia_tensor.setter
+    def inverse_intertia_tensor(self, tensor):
+        self.inverse_inertia_tensor = tensor
 
 
 class HmsDynaStruct(ByteStruct):
@@ -118,14 +126,22 @@ class HmsDynaStruct(ByteStruct):
     Attributes:
         previous_state: HmsDynaStateStruct
         current_state: HmsDynaStateStruct
-        prev_state: HmsDynaStateStruct
+        temp_state: HmsDynaStateStruct
         rest: bytearray
     """
 
-    previous_state  = StructField(offset=268, struct_type=HmsDynaStateStruct)
-    current_state   = StructField(struct_type=HmsDynaStateStruct)
-    prev_state      = StructField(struct_type=HmsDynaStateStruct)
+    previous_state  = StructField(offset=268, struct_type=HmsDynaStateStruct, instance_with_parent=False)
+    current_state   = StructField(struct_type=HmsDynaStateStruct, instance_with_parent=False)
+    temp_state      = StructField(struct_type=HmsDynaStateStruct, instance_with_parent=False)
     rest            = ByteArrayField(616)
+
+    @property
+    def prev_state(self):
+        return self.temp_state
+
+    @prev_state.setter
+    def prev_state(self, state):
+        self.temp_state = state
 
 
 class SurfaceHandler(ByteStruct):
@@ -214,10 +230,10 @@ class SimulationWheel(ByteStruct):
     real_time_state                 = StructField(RealTimeState)
     field_348                       = IntegerField()
     contact_relative_local_distance = ArrayField(shape=3, elem_field_type=FloatField)
-    prev_sync_wheel_state           = StructField(WheelState)
-    sync_wheel_state                = StructField(WheelState)
-    field_564                       = StructField(WheelState)
-    async_wheel_state               = StructField(WheelState)
+    prev_sync_wheel_state           = StructField(WheelState, instance_with_parent=False)
+    sync_wheel_state                = StructField(WheelState, instance_with_parent=False)
+    field_564                       = StructField(WheelState, instance_with_parent=False)
+    async_wheel_state               = StructField(WheelState, instance_with_parent=False)
 
 
 class CheckpointTime(ByteStruct):
@@ -378,10 +394,10 @@ class SceneVehicleCar(ByteStruct):
     max_linear_speed                    = FloatField(offset=736)
     gearbox_state                       = IntegerField()
     block_flags                         = IntegerField()
-    prev_sync_vehicle_state             = StructField(SceneVehicleCarState)
-    sync_vehicle_state                  = StructField(SceneVehicleCarState)
-    async_vehicle_state                 = StructField(SceneVehicleCarState)
-    prev_async_vehicle_state            = StructField(SceneVehicleCarState)
+    prev_sync_vehicle_state             = StructField(SceneVehicleCarState, instance_with_parent=False)
+    sync_vehicle_state                  = StructField(SceneVehicleCarState, instance_with_parent=False)
+    async_vehicle_state                 = StructField(SceneVehicleCarState, instance_with_parent=False)
+    prev_async_vehicle_state            = StructField(SceneVehicleCarState, instance_with_parent=False)
     engine                              = StructField(Engine, offset=1436)
     has_any_lateral_contact             = BooleanField(offset=1500)
     last_has_any_lateral_contact_time   = IntegerField()
@@ -448,26 +464,26 @@ class SimStateData(ByteStruct):
     context_mode            = IntegerField(signed=False)
     flags                   = IntegerField(signed=False)
     timers                  = ArrayField(shape=53, elem_field_type=IntegerField)
-    dyna                    = StructField(HmsDynaStruct)
-    scene_mobil             = StructField(SceneVehicleCar)
+    dyna                    = StructField(HmsDynaStruct, instance_with_parent=False)
+    scene_mobil             = StructField(SceneVehicleCar, instance_with_parent=False)
     simulation_wheels       = ArrayField(shape=4, elem_field_type=SimulationWheel)
     plug_solid              = ByteArrayField(68)
     cmd_buffer_core         = ByteArrayField(264)
-    player_info             = StructField(PlayerInfoStruct)
+    player_info             = StructField(PlayerInfoStruct, instance_with_parent=False)
     internal_input_state    = ArrayField(shape=10, elem_field_type=CachedInput)
 
-    input_running_event     = StructField(Event)
-    input_finish_event      = StructField(Event)
-    input_accelerate_event  = StructField(Event)
-    input_brake_event       = StructField(Event)
-    input_left_event        = StructField(Event)
-    input_right_event       = StructField(Event)
-    input_steer_event       = StructField(Event)
-    input_gas_event         = StructField(Event)
+    input_running_event     = StructField(Event, instance_with_parent=False)
+    input_finish_event      = StructField(Event, instance_with_parent=False)
+    input_accelerate_event  = StructField(Event, instance_with_parent=False)
+    input_brake_event       = StructField(Event, instance_with_parent=False)
+    input_left_event        = StructField(Event, instance_with_parent=False)
+    input_right_event       = StructField(Event, instance_with_parent=False)
+    input_steer_event       = StructField(Event, instance_with_parent=False)
+    input_gas_event         = StructField(Event, instance_with_parent=False)
 
     num_respawns            = IntegerField(signed=False)
 
-    cp_data                 = StructField(CheckpointData)
+    cp_data                 = StructField(CheckpointData, instance_with_parent=False)
 
     @property
     def time(self) -> int:

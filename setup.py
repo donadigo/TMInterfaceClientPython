@@ -11,7 +11,7 @@ setup(
     download_url = 'https://github.com/donadigo/TMInterfaceClientPython/archive/refs/tags/0.6.tar.gz',
     keywords = ['TMInterface', 'client', 'TrackMania'],
     install_requires=[
-        'bytefield==1.0.1',
+        'bytefield==1.0.2',
     ],
     classifiers=[
         'Development Status :: 4 - Beta',
