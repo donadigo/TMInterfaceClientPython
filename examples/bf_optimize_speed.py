@@ -21,7 +21,7 @@ class MainClient(Client):
         print(f'Registered to {iface.server_name}')
         iface.execute_command('set controller bruteforce')
         iface.execute_command('set bf_search_forever true')
-    
+
     def on_simulation_begin(self, iface: TMInterface):
         self.lowest_time = iface.get_event_buffer().events_duration
 
@@ -39,7 +39,7 @@ class MainClient(Client):
                     self.target_speeds = []
 
                 self.target_speeds.append(np.linalg.norm(state.velocity))
-            
+
             else:
                 index = int((self.current_time - 10) / 10)
                 if index < len(self.current_speeds):

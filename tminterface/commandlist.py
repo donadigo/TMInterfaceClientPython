@@ -156,7 +156,7 @@ class CommandList(object):
     and timed commands.
 
     A CommandList can be loaded by providing a file handle to an existing script file or from a string.
-    You can also construct an empty CommandList to add your own commands to then convert them 
+    You can also construct an empty CommandList to add your own commands to then convert them
     into a valid TMInterface script.
 
     If a resource is provided, the class will attempt to parse all of its contents into immediate and timed commands.
@@ -164,7 +164,7 @@ class CommandList(object):
     If any command cannot be converted, it will be commented out.
 
     The class fully supports parsing commands with quoted arguments and inline comments and can be used
-    to genereate new script files.
+    to generate new script files.
 
     Args:
         obj: the resource that needs to be parsed, either:

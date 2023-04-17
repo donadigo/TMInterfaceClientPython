@@ -2,6 +2,7 @@ from tminterface.interface import TMInterface
 from tminterface.client import Client, run_client
 import sys
 
+
 class MainClient(Client):
     def __init__(self) -> None:
         super(MainClient, self).__init__()
@@ -14,7 +15,7 @@ class MainClient(Client):
             state = iface.get_simulation_state()
 
             print(
-                f'Time: {_time}\n' 
+                f'Time: {_time}\n'
                 f'Display Speed: {state.display_speed}\n'
                 f'Position: {state.position}\n'
                 f'Velocity: {state.velocity}\n'

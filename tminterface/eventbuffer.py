@@ -135,13 +135,13 @@ class EventBufferData(object):
         """
         self.events = []
         self.add(-10, '_FakeIsRaceRunning', True)
-    
+
     def sort(self):
         """
         Sorts the event buffer by time in decreasing order.
 
         This is the order that events are stored internally by the game.
-        Calling this is not needed, if you are calling set_event_buffer. 
+        Calling this is not needed, if you are calling set_event_buffer.
         The server will always take care of properly sorting the events.
         """
         self.events = sorted(self.events, key=lambda ev: ev.time, reverse=True)
@@ -155,8 +155,8 @@ class EventBufferData(object):
         in different ways. If the event is an analog event, the value passed should
         be in the range of [-65536, 65536] where negative values represent left steering
         and postive, right steering.
-        
-        If the event is binary, the value should be False for disabling the input and 
+
+        If the event is binary, the value should be False for disabling the input and
         True for enabling it.
 
         The time parameter is zero based, where 0 is the first human input that can be injected.
@@ -187,7 +187,7 @@ class EventBufferData(object):
         Finds matching events according to keyword arguments.
 
         Any unspecified parameter will be skipped in the search and will not be compared.
-        You may use this method to filter events based on time, event type and value. 
+        You may use this method to filter events based on time, event type and value.
 
         Find all analog steering events with value -65536:
 
@@ -205,7 +205,7 @@ class EventBufferData(object):
 
         Args:
             **kwargs: the keyword arguments
-        
+
         Keyword Args:
             event_name (str): match events with this event type
             time (int): match events with this time (zero based)
@@ -258,7 +258,7 @@ class EventBufferData(object):
 
         Args:
             all_events (bool): whether to convert all commands available in the buffer
-        
+
         Returns:
             str: the string containing commands compatible with TMInterface's script syntax
         """
@@ -301,10 +301,10 @@ class EventBufferData(object):
                     commands += f'{time} press {ACTION_MAPPINGS[event_name]}\n'
                 else:
                     commands += f'{time} rel {ACTION_MAPPINGS[event_name]}\n'
-                
+
             elif event_name == ANALOG_ACCELERATE_NAME:
                 commands += f'{time} gas {ev.analog_value}\n'
             elif event_name == ANALOG_STEER_NAME:
                 commands += f'{time} steer {ev.analog_value}\n'
-        
+
         return commands

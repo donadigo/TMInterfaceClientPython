@@ -4,6 +4,7 @@ import math
 
 EPSILON = 0.00001
 
+
 def data_to_analog_value(data: int) -> int:
     """
     Converts an internal analog state value to a [-65536, 65536] range.
@@ -13,7 +14,7 @@ def data_to_analog_value(data: int) -> int:
 
     Args:
         data (int): the internal value, usually stored in an event buffer
-    
+
     Returns:
         int: the converted value
     """
@@ -21,6 +22,7 @@ def data_to_analog_value(data: int) -> int:
     val <<= int32(8)
     val >>= int32(8)
     return -val
+
 
 def analog_value_to_data(value: int) -> int:
     """
@@ -31,7 +33,7 @@ def analog_value_to_data(value: int) -> int:
 
     Args:
         data (int): the value to convert
-    
+
     Returns:
         int: the converted value
     """
@@ -99,11 +101,11 @@ def mat3_to_quat(mat: np.array) -> np.array:
         trace += 1
         trace_squared = math.sqrt(trace)
 
-        trace  = 0.5 / trace_squared
+        trace = 0.5 / trace_squared
         return np.array([
             trace_squared / 2,
             trace * (mat[2, 1] - mat[1, 2]),
-            trace * (mat[0, 2]  - mat[2, 0]),
+            trace * (mat[0, 2] - mat[2, 0]),
             trace * (mat[1, 0] - mat[0, 1])
         ])
 

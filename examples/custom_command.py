@@ -2,6 +2,7 @@ from tminterface.interface import TMInterface
 from tminterface.client import Client, run_client
 import sys
 
+
 class MainClient(Client):
     def __init__(self) -> None:
         super(MainClient, self).__init__()

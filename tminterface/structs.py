@@ -9,7 +9,7 @@ from bytefield import (
     StringField
 )
 from enum import IntEnum
-from tminterface.constants import  SIM_HAS_TIMERS, SIM_HAS_DYNA, SIM_HAS_PLAYER_INFO
+from tminterface.constants import SIM_HAS_TIMERS, SIM_HAS_DYNA, SIM_HAS_PLAYER_INFO
 from tminterface.eventbuffer import Event
 import tminterface.util as util
 import numpy as np
@@ -496,7 +496,7 @@ class SimStateData(ByteStruct):
     def position(self) -> list:
         if (self.flags & SIM_HAS_DYNA) == 0:
             return [0, 0, 0]
-        
+
         return list(self.dyna.current_state.position)
 
     @property
@@ -527,7 +527,7 @@ class SimStateData(ByteStruct):
         if (self.flags & SIM_HAS_DYNA) == 0:
             return False
 
-        self.dyna.current_state.linear_speed = pos
+        self.dyna.current_state.linear_speed = vel
         return True
 
     @property
@@ -543,6 +543,7 @@ class SimStateData(ByteStruct):
             return False
 
         self.dyna.current_state.rotation = matrix
+        self.dyna.current_state.quat = util.mat3_to_quat(matrix)
 
     @property
     def yaw_pitch_roll(self) -> np.array:
@@ -671,7 +672,7 @@ class BFEvaluationInfo(ByteStruct):
 class BFEvaluationResponse(ByteStruct):
     """
     The response object sent by :meth:`Client.on_bruteforce_evaluate`.
-    
+
     If `decision` is set to :class:`BFEvaluationDecision.REJECT`,
     you are allowed to change the inputs manually via the :meth:`TMInterface.set_event_buffer` method and
     set the `rewind_time` to `timestamp - 10` where `timestamp` is the first input that has been

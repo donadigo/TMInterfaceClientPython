@@ -20,7 +20,7 @@ class MainClient(Client):
         print(f'Registered to {iface.server_name}')
         iface.execute_command('set controller bruteforce')
         iface.execute_command('set bf_search_forever true')
-    
+
     def on_simulation_begin(self, iface: TMInterface):
         self.lowest_time = iface.get_event_buffer().events_duration
 

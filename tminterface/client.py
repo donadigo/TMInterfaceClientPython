@@ -66,7 +66,7 @@ class Client(object):
             iface (TMInterface): the TMInterface object
         """
         pass
-    
+
     def on_simulation_end(self, iface, result: int):
         """
         Called when a new simulation session is ended (when validating a replay).
@@ -168,4 +168,3 @@ def run_client(client: Client, server_name: str = 'TMInterface0', buffer_size=DE
 
     while iface.running:
         time.sleep(0)
-
