@@ -2,6 +2,7 @@ import struct
 import threading
 import time
 import mmap
+from ctypes import windll, c_char_p
 from typing import Tuple
 
 from tminterface.client import Client
@@ -902,11 +903,29 @@ class TMInterface(object):
             self.client.on_custom_command(self, _from, to, command, args)
             self._respond_to_call(msgtype)
 
+    def _is_mapped_file_present(self):
+        FILE_MAP_ALL_ACCESS = 0xF001F
+        inherit_handle = 0
+        HANDLE_NAME = c_char_p(bytes(self.server_name.encode()))
+        h = windll.kernel32.OpenFileMappingA(FILE_MAP_ALL_ACCESS, inherit_handle, HANDLE_NAME)
+        is_opened = h != 0
+
+        if is_opened:
+            # close again to prevent handle leaks
+            windll.kernel32.CloseHandle(h)
+
+        return is_opened
+
     def _ensure_connected(self):
         if self.mfile is not None:
             return True
 
         try:
+            if not self._is_mapped_file_present():
+                print(f"No TMI instance with server name {self.server_name} found, waiting for TMI instance to open..")
+                while not self._is_mapped_file_present():
+                    time.sleep(1)
+
             self.mfile = mmap.mmap(-1, self.buffer_size, tagname=self.server_name)
             return True
         except Exception as e:
