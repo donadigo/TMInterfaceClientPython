@@ -17,7 +17,7 @@ import numpy as np
 
 class PlayerInfoStruct(ByteStruct):
     """
-    Attributes:
+    Parameters:
         team: int
         prev_race_time: int
         race_time: int
@@ -84,7 +84,7 @@ class PlayerInfoStruct(ByteStruct):
 
 class HmsDynaStateStruct(ByteStruct):
     """
-    Attributes:
+    Parameters:
         quat: np.ndarray
         rotation: np.ndarray
         position: np.ndarray
@@ -123,7 +123,7 @@ class HmsDynaStateStruct(ByteStruct):
 
 class HmsDynaStruct(ByteStruct):
     """
-    Attributes:
+    Parameters:
         previous_state: HmsDynaStateStruct
         current_state: HmsDynaStateStruct
         temp_state: HmsDynaStateStruct
@@ -146,7 +146,7 @@ class HmsDynaStruct(ByteStruct):
 
 class SurfaceHandler(ByteStruct):
     """
-    Attributes:
+    Parameters:
         unknown: np.ndarray
         rotation: np.ndarray
         position: np.ndarray
@@ -159,7 +159,7 @@ class SurfaceHandler(ByteStruct):
 
 class RealTimeState(ByteStruct):
     """
-    Attributes:
+    Parameters:
         damper_absorb: float
         field_4: float
         field_8: float
@@ -194,7 +194,7 @@ class RealTimeState(ByteStruct):
 
 class WheelState(ByteStruct):
     """
-    Attributes:
+    Parameters:
         rest: bytearray
     """
 
@@ -203,7 +203,7 @@ class WheelState(ByteStruct):
 
 class SimulationWheel(ByteStruct):
     """
-    Attributes:
+    Parameters:
         steerable: bool
         field_8: int
         surface_handler: SurfaceHandler
@@ -238,7 +238,7 @@ class SimulationWheel(ByteStruct):
 
 class CheckpointTime(ByteStruct):
     """
-    Attributes:
+    Parameters:
         time: int
         stunts_score: int
     """
@@ -292,7 +292,7 @@ class CheckpointData(ByteStruct):
 
 class CachedInput(ByteStruct):
     """
-    Attributes:
+    Parameters:
         time: int
         event: Event
     """
@@ -303,7 +303,7 @@ class CachedInput(ByteStruct):
 
 class SceneVehicleCarState(ByteStruct):
     """
-    Attributes:
+    Parameters:
         speed_forward: float
         speed_sideward: float
         input_steer: float
@@ -328,7 +328,7 @@ class SceneVehicleCarState(ByteStruct):
 
 class Engine(ByteStruct):
     """
-    Attributes:
+    Parameters:
         max_rpm: float
         braking_factor: float
         clamped_rpm: float
@@ -349,7 +349,7 @@ class Engine(ByteStruct):
 
 class SceneVehicleCar(ByteStruct):
     """
-    Attributes:
+    Parameters:
         is_update_async: bool
         input_gas: float
         input_brake: float
@@ -439,7 +439,7 @@ class SimStateData(ByteStruct):
     To query input state of the simulation state regardless of context,
     use input_* (input_accelerate, input_brake etc.) accessors.
 
-    Attributes:
+    Parameters:
         version: int
         context_mode: int
         flags: int

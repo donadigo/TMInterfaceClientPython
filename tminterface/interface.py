@@ -70,7 +70,7 @@ class Message(object):
         _type (int): the message type
         error_code (int): the error code of the message, 0 if none
 
-    Attributes:
+    Parameters:
         _type (int): the message type
         error_code (int): the error code of the message, 0 if none
         data (bytearray): the binary data
@@ -150,7 +150,7 @@ class TMInterface(object):
                            Using a custom size requires launching TMInterface with the
                            /serversize command line parameter: TMInterface.exe /serversize=size.
 
-    Attributes:
+    Parameters:
         server_name (str): the server tag that's used
         running (bool): whether the client is running or not
         registered (bool): whether the client is registered

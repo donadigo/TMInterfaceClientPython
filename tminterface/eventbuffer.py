@@ -31,7 +31,7 @@ class Event(ByteStruct):
     Args:
         time (int): the stored time of the event
 
-    Attributes:
+    Parameters:
         time (int): the stored time of the event
         data (int): the final data that is written into game's memory
     """
@@ -103,7 +103,7 @@ class EventBufferData(object):
     Arguments:
         events_duration (int): the duration of the events, equalling the finish time, mostly ignored and does not need to be set
 
-    Attributes:
+    Parameters:
         events_duration (int): the duration of the events
         control_names (list): the list of supported event types by this buffer
         events (list): the list of events held by this buffer
@@ -203,7 +203,7 @@ class EventBufferData(object):
 
         Calling this method without any keyword arguments will return all events in the buffer.
 
-        Args:
+        Parameters:
             **kwargs: the keyword arguments
 
         Keyword Args:
@@ -256,7 +256,7 @@ class EventBufferData(object):
         and appended to the final string. If you want to convert all commands
         that are available in the buffer, call this method with all_events set to True.
 
-        Args:
+        Parameters:
             all_events (bool): whether to convert all commands available in the buffer
 
         Returns:
